@@ -14,6 +14,12 @@ importers:
       '@onflow/types':
         specifier: ^1.4.1
         version: 1.4.1
+      '@telegram-apps/init-data-node':
+        specifier: ^1.2.2
+        version: 1.2.2
+      '@twa-dev/sdk':
+        specifier: ^8.0.1
+        version: 8.0.1(react@18.3.1)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -730,6 +736,26 @@ packages:
 
   '@stablelib/x25519@1.0.3':
     resolution: {integrity: sha512-KnTbKmUhPhHavzobclVJQG5kuivH+qDLpe84iRqX3CLrKp881cF160JvXJ+hjn1aMyCwYOKeIZefIH/P5cJoRw==}
+
+  '@telegram-apps/init-data-node@1.2.2':
+    resolution: {integrity: sha512-/nazt+7Xa+/niezRMnGMILy280SH/XqdwuGLIc/aAfblzR3j98Ze9DUdheOOPozjYKPujEEANjRG4bCtkOvoAA==}
+
+  '@telegram-apps/toolkit@1.1.1':
+    resolution: {integrity: sha512-+vhKx6ngfvjyTE6Xagl3z1TPVbfx5s7xAkcYzCdHYUo6T60jLIqLgyZMcI1UPoIAMuMu1pHoO+p8QNCj/+tFmw==}
+
+  '@telegram-apps/transformers@1.2.2':
+    resolution: {integrity: sha512-vvMwXckd1D7Ozc0h66PSUwF5QLrRV9HlGJFFeBuUex8QEk5mSPtsJkLiqB8aBbwuFDa91+TUSM/CxqPZO/e9YQ==}
+
+  '@telegram-apps/types@1.2.1':
+    resolution: {integrity: sha512-so4HLh7clur0YyMthi9KVIgWoGpZdXlFOuQjk3+Q5NAvJZ11nAheBSwPlGw/Ko92+zwvrSBE/lQyN2+p17RP+w==}
+
+  '@twa-dev/sdk@8.0.1':
+    resolution: {integrity: sha512-mBR5dnAvSyRx7YGt/n0Owq1z8MsWhsuh76JD1abV0TZWHi6RQSPXBNAG0XMOMO7Vf5hsAwUTul+x54vf43Ku0A==}
+    peerDependencies:
+      react: ^18.3.1
+
+  '@twa-dev/types@8.0.1':
+    resolution: {integrity: sha512-/m3KiULhI4fdeoI5K9Op9jFbmdPjxaAdrZBJ3BA1fS4lVmKCx9XuLTeumzYeuOW577eHAJWaZkcSpWBOss4Epw==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -3201,6 +3227,28 @@ snapshots:
       '@stablelib/keyagreement': 1.0.1
       '@stablelib/random': 1.0.2
       '@stablelib/wipe': 1.0.1
+
+  '@telegram-apps/init-data-node@1.2.2':
+    dependencies:
+      '@telegram-apps/toolkit': 1.1.1
+      '@telegram-apps/transformers': 1.2.2
+      '@telegram-apps/types': 1.2.1
+
+  '@telegram-apps/toolkit@1.1.1': {}
+
+  '@telegram-apps/transformers@1.2.2':
+    dependencies:
+      '@telegram-apps/toolkit': 1.1.1
+      '@telegram-apps/types': 1.2.1
+
+  '@telegram-apps/types@1.2.1': {}
+
+  '@twa-dev/sdk@8.0.1(react@18.3.1)':
+    dependencies:
+      '@twa-dev/types': 8.0.1
+      react: 18.3.1
+
+  '@twa-dev/types@8.0.1': {}
 
   '@types/babel__core@7.20.5':
     dependencies:

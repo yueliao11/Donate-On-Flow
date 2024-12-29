@@ -14,8 +14,11 @@ import { DonationLeaderboard } from '../components/donation/DonationLeaderboard'
 import { CommunityVoting } from '../components/community/CommunityVoting';
 import { ProjectEvaluation } from '../components/project/ProjectEvaluation';
 import { Link } from 'react-router-dom';
+import { TelegramUser } from '../components/TelegramUser';
+import { useAuthContext } from '../context/AuthContext';
 
 export const Home: React.FC = () => {
+  const { telegramUser } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'ending'>('latest');
@@ -77,6 +80,9 @@ export const Home: React.FC = () => {
           <TelegramLoginButton />
         </div>
       </div>
+
+      {/* Telegram User Information */}
+      <TelegramUser />
 
       {/* Statistics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

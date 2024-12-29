@@ -12,6 +12,8 @@
   "dependencies": {
     "@onflow/fcl": "^1.13.4",
     "@onflow/types": "^1.4.1",
+    "@telegram-apps/init-data-node": "^1.2.2",
+    "@twa-dev/sdk": "^8.0.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
