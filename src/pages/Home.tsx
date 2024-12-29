@@ -15,10 +15,11 @@ import { CommunityVoting } from '../components/community/CommunityVoting';
 import { ProjectEvaluation } from '../components/project/ProjectEvaluation';
 import { Link } from 'react-router-dom';
 import { TelegramUser } from '../components/TelegramUser';
+import { FlowWallet } from '../components/FlowWallet';
 import { useAuthContext } from '../context/AuthContext';
 
 export const Home: React.FC = () => {
-  const { telegramUser } = useAuthContext();
+  const { isAuthenticated, telegramUser } = useAuthContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'ending'>('latest');
@@ -33,6 +34,11 @@ export const Home: React.FC = () => {
   const { projects, loading, error } = useProjects(searchQuery, selectedCategory, sortBy);
 
   const handleDonate = async (amount: number) => {
+    if (!isAuthenticated) {
+      alert('Please connect with Telegram or Flow Wallet first');
+      return;
+    }
+    
     try {
       await donateToProject(donationModal.projectId, amount);
       setDonationModal({ show: false, projectId: '', projectTitle: '' });
@@ -81,8 +87,11 @@ export const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Telegram User Information */}
-      <TelegramUser />
+      {/* Authentication Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <TelegramUser />
+        <FlowWallet />
+      </div>
 
       {/* Statistics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

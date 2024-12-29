@@ -1,26 +1,29 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
 import WebApp from '@twa-dev/sdk';
 import { validate3rd } from '@telegram-apps/init-data-node/web';
+import useFlowUser from '../hooks/useFlowUser';
 
 interface AuthContextType {
-  user: any;
-  loading: boolean;
-  isConnected: boolean;
-  connect: () => Promise<void>;
-  disconnect: () => void;
+  // Telegram Auth
   telegramUser: {
     userID: number | null;
     username: string | null;
     windowHeight: number;
     isDataValid: boolean;
   };
+  // Flow Auth
+  flowUser: any;
+  flowLoggedIn: boolean;
+  flowLogIn: () => void;
+  flowLogOut: () => void;
+  // Combined Auth State
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const auth = useAuth();
+  // Telegram Auth State
   const [telegramUser, setTelegramUser] = useState({
     userID: null as number | null,
     username: null as string | null,
@@ -28,6 +31,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isDataValid: false
   });
 
+  // Flow Auth State
+  const { flowUser, flowLoggedIn, flowLogIn, flowLogOut } = useFlowUser();
+
+  // Initialize Telegram Auth
   useEffect(() => {
     if (typeof window !== 'undefined' && WebApp) {
       WebApp.isVerticalSwipesEnabled = false;
@@ -39,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       (async () => {
         try {
-          const botId = 7836566125; // Your bot ID from the message
+          const botId = 7836566125; // Your bot ID
           await validate3rd(WebApp.initData, botId);
           const user = WebApp.initDataUnsafe.user;
           setTelegramUser(prev => ({
@@ -59,8 +66,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Combined authentication state
+  const isAuthenticated = telegramUser.isDataValid || flowLoggedIn;
+
+  const value = {
+    telegramUser,
+    flowUser,
+    flowLoggedIn,
+    flowLogIn,
+    flowLogOut,
+    isAuthenticated
+  };
+
   return (
-    <AuthContext.Provider value={{ ...auth, telegramUser }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
