@@ -15,7 +15,7 @@ interface DonationWithProject extends Donation {
 }
 
 export const UserDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, connected, walletAddress } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [donations, setDonations] = React.useState<DonationWithProject[]>([]);
@@ -24,23 +24,24 @@ export const UserDashboard: React.FC = () => {
 
   React.useEffect(() => {
     console.log('UserDashboard: Current user:', user);
-    if (!user?.addr) {
-      console.log('UserDashboard: No user address, redirecting to home');
+    if (!connected) {
+      console.log('UserDashboard: Not connected, redirecting to home');
       navigate('/');
       return;
     }
 
-    const fetchData = async () => {
+    const fetchUserData = async () => {
+      setLoading(true);
       try {
-        console.log('UserDashboard: Fetching data for address:', user.addr);
-        const [projectsData, donationsData] = await Promise.all([
-          getProjectsByCreator(user.addr),
-          getDonationsByDonor(user.addr)
-        ]);
-        console.log('UserDashboard: Fetched projects:', projectsData);
-        console.log('UserDashboard: Fetched donations:', donationsData);
-        setProjects(projectsData);
-        setDonations(donationsData);
+        // 使用钱包地址获取数据
+        if (walletAddress) {
+          const [userProjects, userDonations] = await Promise.all([
+            getProjectsByCreator(walletAddress),
+            getDonationsByDonor(walletAddress)
+          ]);
+          setProjects(userProjects);
+          setDonations(userDonations);
+        }
       } catch (error) {
         console.error('Error fetching user data:', error);
       } finally {
@@ -48,13 +49,13 @@ export const UserDashboard: React.FC = () => {
       }
     };
 
-    fetchData();
-  }, [user?.addr, navigate]);
+    fetchUserData();
+  }, [connected, walletAddress, navigate]);
 
   const handleUpdateMilestone = async (milestoneId: number, status: 'PENDING' | 'ACTIVE' | 'COMPLETED') => {
     try {
       await updateMilestoneStatus(milestoneId, status);
-      const updatedProjects = await getProjectsByCreator(user!.addr);
+      const updatedProjects = await getProjectsByCreator(walletAddress);
       setProjects(updatedProjects);
     } catch (error) {
       console.error('Error updating milestone:', error);
@@ -65,7 +66,7 @@ export const UserDashboard: React.FC = () => {
   const handleUpdateProject = async (projectId: number, status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED') => {
     try {
       await updateProjectStatus(projectId, status);
-      const updatedProjects = await getProjectsByCreator(user!.addr);
+      const updatedProjects = await getProjectsByCreator(walletAddress);
       setProjects(updatedProjects);
     } catch (error) {
       console.error('Error updating project:', error);

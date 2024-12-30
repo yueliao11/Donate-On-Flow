@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import * as fcl from '@onflow/fcl';
+import { ethers } from 'ethers';
+import { CharityProjectService } from '../services/ethereum/charityProject';
+import { connectWallet } from '../services/ethereum/config';
 import { Category, createProject } from '../lib/supabase';
 
 export const CreateProject: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, connected } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -25,10 +27,10 @@ export const CreateProject: React.FC = () => {
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!user?.addr) {
+    if (!connected) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [connected, navigate]);
 
   const categories: Category[] = [
     'Education',
@@ -49,59 +51,36 @@ export const CreateProject: React.FC = () => {
     try {
       setLoading(true);
       
-      // First check FLOW balance
-      const flowBalance = await fcl.query({
-        cadence: `
-          access(all) fun main(address: Address): UFix64 {
-              let account = getAccount(address)
-              return account.balance
-          }
-        `,
-        args: (arg: any, t: any) => [arg(user.addr, t.Address)],
-      });
-
-      if (parseFloat(flowBalance) < parseFloat(depositAmount)) {
-        alert('Insufficient FLOW balance for deposit');
+      // Connect to wallet and get signer
+      const signer = await connectWallet();
+      
+      // Check ETH balance
+      const balance = await signer.getBalance();
+      const depositAmountWei = ethers.utils.parseEther(depositAmount);
+      
+      if (balance.lt(depositAmountWei)) {
+        alert('Insufficient ETH balance for deposit');
         return;
       }
 
-      // Create project on Flow blockchain
-      const transactionId = await fcl.mutate({
-        cadence: `
-          import CharityProjectV2 from 0x945c254064cc292c35FA8516AFD415a73A0b23A0
-          
-          transaction(title: String, description: String, targetAmount: UFix64) {
-              prepare(signer: AuthAccount) {
-                  // Calculate deposit amount (10% of target amount)
-                  let depositAmount = targetAmount * 0.1
-                  
-                  // Create project with FLOW deposit
-                  let projectID = CharityProjectV2.createProject(
-                      title: title,
-                      description: description,
-                      targetAmount: targetAmount,
-                      depositAmount: depositAmount
-                  )
-              }
+      // Create project on Ethereum blockchain
+      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+      if (!contractAddress) {
+        throw new Error('Contract address not found');
+      }
 
-              execute {
-                  // Deposit FLOW directly from account balance
-                  CharityProjectV2.depositFlow(amount: depositAmount)
-              }
-          }
-        `,
-        args: (arg: any, t: any) => [
-          arg(title, t.String),
-          arg(description, t.String),
-          arg(targetAmount, t.UFix64),
-        ],
-        payer: fcl.authz,
-        proposer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 999,
-      });
+      const charityProject = new CharityProjectService(contractAddress, signer);
+      
+      // Create project with deposit
+      const tx = await charityProject.createProject(
+        title,
+        description,
+        targetAmount,
+        [], // milestone descriptions
+        [] // milestone amounts
+      );
 
-      await fcl.tx(transactionId).onceSealed();
+      await tx.wait();
 
       // Create project in Supabase
       await createProject({
@@ -110,7 +89,7 @@ export const CreateProject: React.FC = () => {
         targetAmount: parseFloat(targetAmount),
         category,
         imageUrl,
-        creatorAddress: user.addr,
+        creatorAddress: await signer.getAddress(),
         status: 'ACTIVE'
       });
 
@@ -139,7 +118,7 @@ export const CreateProject: React.FC = () => {
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              Creating a project requires a deposit of 10% of the target amount ({depositAmount} FLOW).
+              Creating a project requires a deposit of 10% of the target amount ({depositAmount} ETH).
               This includes 3% platform fee and 7% refundable deposit.
               The deposit will be returned when the project reaches its goal.
             </p>
@@ -178,7 +157,7 @@ export const CreateProject: React.FC = () => {
 
         <div>
           <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
-            Target Amount (FLOW)
+            Target Amount (ETH)
           </label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <input
@@ -193,7 +172,7 @@ export const CreateProject: React.FC = () => {
             />
           </div>
           <p className="mt-2 text-sm text-gray-500">
-            Required deposit: {depositAmount} FLOW
+            Required deposit: {depositAmount} ETH
           </p>
         </div>
 

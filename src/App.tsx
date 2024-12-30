@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthContextProvider } from './context/AuthContext';
 import { Home } from './pages/Home';
 import { CreateProject } from './pages/CreateProject';
 import { ProjectDetails } from './pages/ProjectDetails';
@@ -9,7 +9,7 @@ import { UserDashboard } from './pages/UserDashboard';
 
 function App() {
   return (
-    <AuthProvider>
+    <AuthContextProvider>
       <Router>
         <div className="min-h-screen bg-gray-50">
           <Navigation />
@@ -23,7 +23,7 @@ function App() {
           </main>
         </div>
       </Router>
-    </AuthProvider>
+    </AuthContextProvider>
   );
 }
 

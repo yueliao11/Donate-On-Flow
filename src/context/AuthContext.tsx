@@ -1,119 +1,156 @@
+'use client';
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as fcl from '@onflow/fcl';
-import WebApp from '@twa-dev/sdk';
-import { validate3rd } from '@telegram-apps/init-data-node/web';
-
-interface User {
-  addr: string | null;
-  loggedIn: boolean;
-}
-
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  username?: string;
-}
+import { OKXUniversalConnectUI, THEME } from '@okxconnect/ui';
+import { ethers } from 'ethers';
+import { CharityProject__factory } from '../types/factories/CharityProject__factory';
 
 interface AuthContextType {
-  user: User | null;
-  telegramUser: TelegramUser | null;
+  connected: boolean;
+  walletAddress: string | null;
+  chainId: string | null;
+  signer: ethers.Signer | null;
+  charityContract: ethers.Contract | null;
+  telegramUser: any | null;
+  user: {
+    addr: string | null;
+    loggedIn: boolean;
+  };
   logIn: () => Promise<void>;
   logOut: () => Promise<void>;
   telegramLogIn: () => Promise<void>;
-  telegramLogOut: () => Promise<void>;
+  telegramLogOut: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
+export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [client, setClient] = useState<OKXUniversalConnectUI | null>(null);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [chainId, setChainId] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [charityContract, setCharityContract] = useState<ethers.Contract | null>(null);
+  const [telegramUser, setTelegramUser] = useState<any | null>(null);
+  const [user, setUser] = useState({
+    addr: null,
+    loggedIn: false
+  });
 
   useEffect(() => {
-    // Subscribe to user updates
-    fcl.currentUser.subscribe(setUser);
-
-    // Initialize FCL
-    fcl.config()
-      .put('app.detail.title', 'Flow Donate')
-      .put('app.detail.icon', 'https://placekitten.com/g/200/200')
-      .put('accessNode.api', 'https://rest-testnet.onflow.org')
-      .put('flow.network', 'testnet')
-      .put('discovery.wallet', 'https://fcl-discovery.onflow.org/testnet/authn')
-      .put('0xFungibleToken', '0x9a0766d93b6608b7')
-      .put('0xFUSD', '0xe223d8a629e49c68')
-      .put('0xCharityProject', '0x945c254064cc292c35FA8516AFD415a73A0b23A0')
-      .put('0xCharityProjectV2', '0x945c254064cc292c35FA8516AFD415a73A0b23A0');
+    const initClient = async () => {
+      try {
+        const uiClient = await OKXUniversalConnectUI.init({
+          dappMetaData: {
+            name: 'Charity DApp',
+            icon: 'https://your-icon-url.png',
+          },
+          actionsConfiguration: {
+            returnStrategy: 'none',
+            modals: 'all',
+          },
+          uiPreferences: {
+            theme: THEME.LIGHT,
+          },
+        });
+        setClient(uiClient);
+      } catch (error) {
+        console.error('Failed to initialize OKX UI:', error);
+      }
+    };
+    initClient();
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && WebApp) {
-      WebApp.isVerticalSwipesEnabled = false;
-      WebApp.ready();
-
-      (async () => {
-        try {
-          const botId = 7836566125; // Your bot ID
-          const initData = WebApp.initData;
-          const isValid = validate3rd(initData, botId);
-
-          if (isValid) {
-            const user = WebApp.initDataUnsafe.user;
-            if (user) {
-              setTelegramUser({
-                id: user.id,
-                first_name: user.first_name,
-                username: user.username
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error validating Telegram user:', error);
-        }
-      })();
+    if (connected && walletAddress) {
+      setUser({
+        addr: walletAddress,
+        loggedIn: true
+      });
+    } else {
+      setUser({
+        addr: null,
+        loggedIn: false
+      });
     }
-  }, []);
+  }, [connected, walletAddress]);
 
   const logIn = async () => {
+    if (!client) return;
     try {
-      const response = await fcl.authenticate();
-      console.log('Authentication response:', response);
+      const session = await client.openModal({
+        namespaces: {
+          eip155: {
+            chains: ['eip155:747'], // Flow EVM chain ID
+            defaultChain: '747',
+          },
+        },
+      });
+
+      if (!session || !session.namespaces.eip155) {
+        console.error('Session is undefined or invalid');
+        return;
+      }
+
+      const address = session.namespaces.eip155.accounts[0]?.split(':')[2];
+      const chain = session.namespaces.eip155.chains[0]?.split(':')[1] || null;
+
+      // 创建 Web3Provider
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const newSigner = provider.getSigner();
+      
+      // 初始化合约
+      const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
+      if (!contractAddress) {
+        throw new Error('Contract address not found in environment variables (VITE_CONTRACT_ADDRESS)');
+      }
+      const contract = CharityProject__factory.connect(contractAddress, newSigner);
+
+      setWalletAddress(address);
+      setChainId(chain);
+      setConnected(true);
+      setSigner(newSigner);
+      setCharityContract(contract);
     } catch (error) {
-      console.error('Error logging in:', error);
-      throw error;
+      console.error('Failed to connect wallet:', error);
+      throw error; // 重新抛出错误以便上层组件处理
     }
   };
 
   const logOut = async () => {
+    if (!client) return;
     try {
-      await fcl.unauthenticate();
+      await client.disconnect();
+      setWalletAddress(null);
+      setChainId(null);
+      setConnected(false);
+      setSigner(null);
+      setCharityContract(null);
     } catch (error) {
-      console.error('Error logging out:', error);
-      throw error;
+      console.error('Failed to disconnect wallet:', error);
     }
   };
 
   const telegramLogIn = async () => {
-    // Implement Telegram login logic
+    // TODO: Implement Telegram login logic
   };
 
-  const telegramLogOut = async () => {
-    setTelegramUser(null);
+  const telegramLogOut = () => {
+    // TODO: Implement Telegram logout logic
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
+        connected,
+        walletAddress,
+        chainId,
+        signer,
+        charityContract,
         telegramUser,
+        user,
         logIn,
         logOut,
         telegramLogIn,
@@ -123,4 +160,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

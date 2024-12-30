@@ -16,13 +16,15 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   onDonationComplete,
 }) => {
   const { user, logIn } = useAuth();
+  const connected = user?.addr !== null;
+  const walletAddress = user?.addr;
   const [amount, setAmount] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.addr) {
+    if (!connected || !walletAddress) {
       alert('Please connect your wallet first');
       return;
     }
@@ -80,7 +82,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
           Make a Donation
         </h2>
 
-        {!user?.loggedIn ? (
+        {!connected ? (
           <div className="text-center">
             <p className="text-gray-600 mb-4">
               Please connect your wallet to make a donation
