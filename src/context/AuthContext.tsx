@@ -1,94 +1,126 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import * as fcl from '@onflow/fcl';
 import WebApp from '@twa-dev/sdk';
 import { validate3rd } from '@telegram-apps/init-data-node/web';
-import useFlowUser from '../hooks/useFlowUser';
 
-interface AuthContextType {
-  // Telegram Auth
-  telegramUser: {
-    userID: number | null;
-    username: string | null;
-    windowHeight: number;
-    isDataValid: boolean;
-  };
-  // Flow Auth
-  flowUser: any;
-  flowLoggedIn: boolean;
-  flowLogIn: () => void;
-  flowLogOut: () => void;
-  // Combined Auth State
-  isAuthenticated: boolean;
+interface User {
+  addr: string | null;
+  loggedIn: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+interface TelegramUser {
+  id: number;
+  first_name: string;
+  username?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  telegramUser: TelegramUser | null;
+  logIn: () => Promise<void>;
+  logOut: () => Promise<void>;
+  telegramLogIn: () => Promise<void>;
+  telegramLogOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Telegram Auth State
-  const [telegramUser, setTelegramUser] = useState({
-    userID: null as number | null,
-    username: null as string | null,
-    windowHeight: 0,
-    isDataValid: false
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
 
-  // Flow Auth State
-  const { flowUser, flowLoggedIn, flowLogIn, flowLogOut } = useFlowUser();
+  useEffect(() => {
+    // Subscribe to user updates
+    fcl.currentUser.subscribe(setUser);
 
-  // Initialize Telegram Auth
+    // Initialize FCL
+    fcl.config()
+      .put('app.detail.title', 'Flow Donate')
+      .put('app.detail.icon', 'https://placekitten.com/g/200/200')
+      .put('accessNode.api', 'https://rest-testnet.onflow.org')
+      .put('flow.network', 'testnet')
+      .put('discovery.wallet', 'https://fcl-discovery.onflow.org/testnet/authn')
+      .put('0xFungibleToken', '0x9a0766d93b6608b7')
+      .put('0xFUSD', '0xe223d8a629e49c68')
+      .put('0xCharityProject', '0x945c254064cc292c35FA8516AFD415a73A0b23A0')
+      .put('0xCharityProjectV2', '0x945c254064cc292c35FA8516AFD415a73A0b23A0');
+  }, []);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && WebApp) {
       WebApp.isVerticalSwipesEnabled = false;
-      setTelegramUser(prev => ({
-        ...prev,
-        windowHeight: WebApp.viewportStableHeight || window.innerHeight
-      }));
       WebApp.ready();
 
       (async () => {
         try {
           const botId = 7836566125; // Your bot ID
-          await validate3rd(WebApp.initData, botId);
-          const user = WebApp.initDataUnsafe.user;
-          setTelegramUser(prev => ({
-            ...prev,
-            isDataValid: true,
-            userID: user?.id || null,
-            username: user?.username || null
-          }));
+          const initData = WebApp.initData;
+          const isValid = validate3rd(initData, botId);
+
+          if (isValid) {
+            const user = WebApp.initDataUnsafe.user;
+            if (user) {
+              setTelegramUser({
+                id: user.id,
+                first_name: user.first_name,
+                username: user.username
+              });
+            }
+          }
         } catch (error) {
-          console.error('Telegram validation failed:', error);
-          setTelegramUser(prev => ({
-            ...prev,
-            isDataValid: false
-          }));
+          console.error('Error validating Telegram user:', error);
         }
       })();
     }
   }, []);
 
-  // Combined authentication state
-  const isAuthenticated = telegramUser.isDataValid || flowLoggedIn;
+  const logIn = async () => {
+    try {
+      const response = await fcl.authenticate();
+      console.log('Authentication response:', response);
+    } catch (error) {
+      console.error('Error logging in:', error);
+      throw error;
+    }
+  };
 
-  const value = {
-    telegramUser,
-    flowUser,
-    flowLoggedIn,
-    flowLogIn,
-    flowLogOut,
-    isAuthenticated
+  const logOut = async () => {
+    try {
+      await fcl.unauthenticate();
+    } catch (error) {
+      console.error('Error logging out:', error);
+      throw error;
+    }
+  };
+
+  const telegramLogIn = async () => {
+    // Implement Telegram login logic
+  };
+
+  const telegramLogOut = async () => {
+    setTelegramUser(null);
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider
+      value={{
+        user,
+        telegramUser,
+        logIn,
+        logOut,
+        telegramLogIn,
+        telegramLogOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuthContext = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuthContext must be used within an AuthProvider');
-  }
-  return context;
 };

@@ -1,32 +1,21 @@
 import React from 'react';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
+import { UserMenu } from './user/UserMenu';
 
 export const FlowWallet: React.FC = () => {
-  const { flowUser, flowLoggedIn, flowLogIn, flowLogOut } = useAuthContext();
+  const { user, logIn } = useAuth();
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
-      <h2 className="text-xl font-bold">Flow Wallet</h2>
-      {flowLoggedIn ? (
-        <div className="space-y-4">
-          <p className="text-sm">
-            Connected as:{' '}
-            <span className="font-mono">{flowUser?.addr}</span>
-          </p>
-          <button
-            onClick={flowLogOut}
-            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-          >
-            Disconnect Flow Wallet
-          </button>
-        </div>
-      ) : (
+    <div>
+      {!user?.loggedIn ? (
         <button
-          onClick={flowLogIn}
-          className="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors"
+          onClick={logIn}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          Connect Flow Wallet
+          Connect Wallet
         </button>
+      ) : (
+        <UserMenu />
       )}
     </div>
   );

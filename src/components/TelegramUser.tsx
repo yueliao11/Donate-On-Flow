@@ -1,33 +1,31 @@
 import React from 'react';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 export const TelegramUser: React.FC = () => {
-  const { telegramUser } = useAuthContext();
-  const { userID, username, windowHeight, isDataValid } = telegramUser;
-
-  if (!isDataValid) {
-    return (
-      <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
-        <h1 className="text-xl font-bold text-red-600">
-          Telegram Validation Failed
-        </h1>
-        <p>
-          Please open this app through Telegram
-        </p>
-      </div>
-    );
-  }
+  const { telegramUser, telegramLogIn, telegramLogOut } = useAuth();
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 text-center space-y-4">
-      <h1 className="text-xl font-bold">
-        Welcome to Flow Donate!
-      </h1>
-      <div className="space-y-2">
-        <p>Telegram ID: {userID || 'Not available'}</p>
-        <p>Username: {username || 'Not available'}</p>
-        <p>Window Height: {windowHeight}px</p>
-      </div>
+    <div>
+      {!telegramUser ? (
+        <button
+          onClick={telegramLogIn}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Connect Telegram
+        </button>
+      ) : (
+        <div className="flex items-center space-x-2">
+          <span className="text-sm text-gray-600">
+            {telegramUser.first_name}
+          </span>
+          <button
+            onClick={telegramLogOut}
+            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Disconnect
+          </button>
+        </div>
+      )}
     </div>
   );
 };
