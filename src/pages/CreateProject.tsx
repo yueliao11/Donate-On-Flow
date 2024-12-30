@@ -49,26 +49,19 @@ export const CreateProject: React.FC = () => {
     try {
       setLoading(true);
       
-      // First check FUSD balance
-      const fusdBalance = await fcl.query({
+      // First check FLOW balance
+      const flowBalance = await fcl.query({
         cadence: `
-          import FUSD from 0xe223d8a629e49c68
-          
-          pub fun main(address: Address): UFix64 {
+          access(all) fun main(address: Address): UFix64 {
               let account = getAccount(address)
-              let vaultRef = account
-                  .getCapability(/public/fusdBalance)
-                  .borrow<&FUSD.Vault{FUSD.Balance}>()
-                  ?? panic("Could not borrow Balance reference to the Vault")
-              
-              return vaultRef.balance
+              return account.balance
           }
         `,
         args: (arg: any, t: any) => [arg(user.addr, t.Address)],
       });
 
-      if (parseFloat(fusdBalance) < parseFloat(depositAmount)) {
-        alert('Insufficient FUSD balance for deposit');
+      if (parseFloat(flowBalance) < parseFloat(depositAmount)) {
+        alert('Insufficient FLOW balance for deposit');
         return;
       }
 
@@ -76,27 +69,24 @@ export const CreateProject: React.FC = () => {
       const transactionId = await fcl.mutate({
         cadence: `
           import CharityProjectV2 from 0x945c254064cc292c35FA8516AFD415a73A0b23A0
-          import FUSD from 0xe223d8a629e49c68
           
           transaction(title: String, description: String, targetAmount: UFix64) {
               prepare(signer: AuthAccount) {
-                  // Get FUSD Vault reference
-                  let vaultRef = signer.borrow<&FUSD.Vault>(from: /storage/fusdVault)
-                      ?? panic("Could not borrow reference to the owner's Vault!")
-                  
                   // Calculate deposit amount (10% of target amount)
                   let depositAmount = targetAmount * 0.1
                   
-                  // Withdraw deposit amount
-                  let depositVault <- vaultRef.withdraw(amount: depositAmount)
-                  
-                  // Create project
+                  // Create project with FLOW deposit
                   let projectID = CharityProjectV2.createProject(
                       title: title,
                       description: description,
                       targetAmount: targetAmount,
-                      depositVault: <-depositVault
+                      depositAmount: depositAmount
                   )
+              }
+
+              execute {
+                  // Deposit FLOW directly from account balance
+                  CharityProjectV2.depositFlow(amount: depositAmount)
               }
           }
         `,
@@ -149,7 +139,7 @@ export const CreateProject: React.FC = () => {
           </div>
           <div className="ml-3">
             <p className="text-sm text-yellow-700">
-              Creating a project requires a deposit of 10% of the target amount ({depositAmount} FUSD).
+              Creating a project requires a deposit of 10% of the target amount ({depositAmount} FLOW).
               This includes 3% platform fee and 7% refundable deposit.
               The deposit will be returned when the project reaches its goal.
             </p>
@@ -188,7 +178,7 @@ export const CreateProject: React.FC = () => {
 
         <div>
           <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
-            Target Amount (FUSD)
+            Target Amount (FLOW)
           </label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <input
@@ -203,7 +193,7 @@ export const CreateProject: React.FC = () => {
             />
           </div>
           <p className="mt-2 text-sm text-gray-500">
-            Required deposit: {depositAmount} FUSD
+            Required deposit: {depositAmount} FLOW
           </p>
         </div>
 

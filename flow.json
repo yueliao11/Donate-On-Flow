@@ -1,13 +1,14 @@
 {
   "networks": {
-    "testnet": "access.testnet.nodes.onflow.org:9000"
+    "testnet": "access.devnet.nodes.onflow.org:9000"
   },
   "contracts": {
-    "CharityProject": "./src/services/flow/contracts/CharityProject.cdc",
-    "CharityProjectV2": "./src/services/flow/contracts/CharityProjectV2.cdc",
-    "ProjectToken": "./src/services/flow/contracts/ProjectToken.cdc",
-    "TokenVault": "./src/services/flow/contracts/TokenVault.cdc",
-    "Community": "./src/services/flow/contracts/Community.cdc"
+    "CharityProjectV2": {
+      "source": "./src/services/flow/contracts/CharityProjectV2.cdc",
+      "aliases": {
+        "testnet": "0x945c254064cc292c35FA8516AFD415a73A0b23A0"
+      }
+    }
   },
   "accounts": {
     "testnet-account": {
@@ -17,19 +18,13 @@
         "index": 0,
         "signatureAlgorithm": "ECDSA_P256",
         "hashAlgorithm": "SHA3_256",
-        "privateKey": "919cc2ae48808decd3fe50fd307800e6d1023afaea98057d814f54f0635aeea1"
+        "privateKey": ""
       }
     }
   },
   "deployments": {
     "testnet": {
-      "testnet-account": [
-        "CharityProject",
-        "CharityProjectV2",
-        "ProjectToken",
-        "TokenVault",
-        "Community"
-      ]
+      "testnet-account": ["CharityProjectV2"]
     }
   }
 }

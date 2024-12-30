@@ -1,18 +1,18 @@
-import FUSD from 0xFUSD
+import FLOW from 0xFLOW
 import ProjectToken from 0xProjectToken
 import CharityProject from 0xCharityProject
 
 transaction(projectAddress: Address, amount: UFix64) {
-    let fusdVault: @FUSD.Vault
+    let flowVault: @FLOW.Vault
     let projectRef: &{CharityProject.ProjectPublic}
     
     prepare(signer: AuthAccount) {
-        // Get FUSD vault from signer's storage
-        let vaultRef = signer.borrow<&FUSD.Vault>(from: /storage/fusdVault)
-            ?? panic("Could not borrow FUSD vault reference")
+        // Get FLOW vault from signer's storage
+        let vaultRef = signer.borrow<&FLOW.Vault>(from: /storage/flowVault)
+            ?? panic("Could not borrow FLOW vault reference")
         
-        // Withdraw FUSD
-        self.fusdVault <- vaultRef.withdraw(amount: amount)
+        // Withdraw FLOW
+        self.flowVault <- vaultRef.withdraw(amount: amount)
         
         // Get project reference
         self.projectRef = getAccount(projectAddress)
@@ -22,8 +22,8 @@ transaction(projectAddress: Address, amount: UFix64) {
     }
 
     execute {
-        // Donate FUSD and receive project tokens
-        let projectTokens <- self.projectRef.donateWithFUSD(vault: <-self.fusdVault)
+        // Donate FLOW and receive project tokens
+        let projectTokens <- self.projectRef.donateWithFLOW(vault: <-self.flowVault)
         
         // Save project tokens to signer's storage
         let tokenStoragePath = /storage/projectTokens

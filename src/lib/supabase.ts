@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://mdlorawrspaacqhvkzpz.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbG9yYXdyc3BhYWNqaHZrenB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzMDcwMDksImV4cCI6MjA1MDg4MzAwOX0.op36q5KCMPomwNDqcWKda3NsjZc-KnCwBG5Lom2XYHc';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mdlorawrspaacqhvkzpz.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kbG9yYXdyc3BhYWNqaHZrenB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUzMDcwMDksImV4cCI6MjA1MDg4MzAwOX0.op36q5KCMPomwNDqcWKda3NsjZc-KnCwBG5Lom2XYHc';
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || import.meta.env.LOCAL_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.LOCAL_SUPABASE_ANON_KEY
+);
 
 export type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 export type MilestoneStatus = 'PENDING' | 'ACTIVE' | 'COMPLETED';

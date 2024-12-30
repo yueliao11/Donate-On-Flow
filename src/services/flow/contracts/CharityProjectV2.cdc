@@ -1,6 +1,3 @@
-import FungibleToken from 0x9a0766d93b6608b7
-import FUSD from 0xe223d8a629e49c68
-
 access(all) contract CharityProjectV2 {
     // Constants
     access(all) let PLATFORM_FEE_PERCENTAGE: UFix64
@@ -79,8 +76,6 @@ access(all) contract CharityProjectV2 {
         access(all) var status: ProjectStatus
         access(all) var milestones: [Milestone]
         access(all) var currentMilestoneIndex: Int
-        access(all) let projectVault: @FUSD.Vault
-        access(all) let depositVault: @FUSD.Vault
         access(all) var donors: {Address: UFix64}
 
         init(
@@ -111,14 +106,11 @@ access(all) contract CharityProjectV2 {
                 )
                 self.milestones.append(milestone)
             }
-            
-            self.projectVault <- FUSD.createEmptyVault()
-            self.depositVault <- FUSD.createEmptyVault()
         }
 
         access(all) fun checkMilestoneCompletion() {
             if self.currentMilestoneIndex >= 0 && self.currentMilestoneIndex < self.milestones.length {
-                let milestone = &self.milestones[self.currentMilestoneIndex]
+                let milestone = &self.milestones[self.currentMilestoneIndex] as &Milestone
                 if milestone.currentAmount >= milestone.requiredAmount {
                     milestone.status = MilestoneStatus.VOTING
                     self.status = ProjectStatus.VOTING
@@ -129,9 +121,9 @@ access(all) contract CharityProjectV2 {
     }
 
     access(all) resource interface ProjectPublic {
-        access(all) fun donate(vault: @FUSD.Vault)
+        access(all) fun donate(amount: UFix64)
         access(all) fun vote(approve: Bool)
-        access(all) fun withdrawMilestoneAmount(): @FUSD.Vault
+        access(all) fun withdrawMilestoneAmount(): UFix64
         access(all) fun getDetails(): Project
     }
 
@@ -142,38 +134,39 @@ access(all) contract CharityProjectV2 {
             self.project = project
         }
 
-        access(all) fun donate(vault: @FUSD.Vault) {
+        access(all) fun donate(amount: UFix64) {
             pre {
                 self.project.status == ProjectStatus.ACTIVE:
                     "Project must be active to receive donations"
+            } post {
+                self.project.currentAmount == self.project.currentAmount + amount:
+                    "Donation amount must be added to project's current amount"
             }
 
-            let amount = vault.balance
-            self.project.currentAmount = self.project.currentAmount + amount
+            self.project.currentAmount = self.project.currentAmount + amount;
             
             // Record donor contribution
-            let donor = getCurrentAuthAccount().address
+            let donor = getCurrentAuthAccount().address;
             if let existingAmount = self.project.donors[donor] {
-                self.project.donors[donor] = existingAmount + amount
+                self.project.donors[donor] = existingAmount + amount;
             } else {
-                self.project.donors[donor] = amount
+                self.project.donors[donor] = amount;
             }
 
             // Update current milestone amount
             if self.project.currentMilestoneIndex >= 0 && 
                self.project.currentMilestoneIndex < self.project.milestones.length {
-                let milestone = &self.project.milestones[self.project.currentMilestoneIndex]
-                milestone.currentAmount = milestone.currentAmount + amount
+                let milestone = &self.project.milestones[self.project.currentMilestoneIndex] as &Milestone;
+                milestone.currentAmount = milestone.currentAmount + amount;
             }
 
-            self.project.projectVault.deposit(from: <-vault)
-            self.project.checkMilestoneCompletion()
+            self.project.checkMilestoneCompletion();
 
             emit DonationReceived(
                 projectId: self.project.id,
                 amount: amount,
                 donor: donor
-            )
+            );
         }
 
         access(all) fun vote(approve: Bool) {
@@ -182,13 +175,13 @@ access(all) contract CharityProjectV2 {
                     "Project must be in voting state"
             }
 
-            let voter = getCurrentAuthAccount().address
+            let voter = getCurrentAuthAccount().address;
             if let donationAmount = self.project.donors[voter] {
-                let voteWeight = donationAmount / self.project.currentAmount
+                let voteWeight = donationAmount / self.project.currentAmount;
                 
                 if self.project.currentMilestoneIndex >= 0 && 
                    self.project.currentMilestoneIndex < self.project.milestones.length {
-                    let milestone = &self.project.milestones[self.project.currentMilestoneIndex]
+                    let milestone = &self.project.milestones[self.project.currentMilestoneIndex] as &Milestone;
                     
                     // Only allow voting once
                     if milestone.votes[voter] == nil {
@@ -196,13 +189,13 @@ access(all) contract CharityProjectV2 {
                             voter: voter,
                             weight: voteWeight,
                             approve: approve
-                        )
-                        milestone.votes[voter] = vote
+                        );
+                        milestone.votes[voter] = vote;
 
                         if approve {
-                            milestone.approvalWeight = milestone.approvalWeight + voteWeight
+                            milestone.approvalWeight = milestone.approvalWeight + voteWeight;
                         } else {
-                            milestone.rejectionWeight = milestone.rejectionWeight + voteWeight
+                            milestone.rejectionWeight = milestone.rejectionWeight + voteWeight;
                         }
 
                         emit VoteCast(
@@ -211,70 +204,51 @@ access(all) contract CharityProjectV2 {
                             voter: voter,
                             weight: voteWeight,
                             approve: approve
-                        )
+                        );
 
-                        // Check if voting is complete
-                        if milestone.approvalWeight > CharityProjectV2.VOTE_THRESHOLD_PERCENTAGE {
-                            milestone.status = MilestoneStatus.COMPLETED
-                            self.project.status = ProjectStatus.ACTIVE
-                            self.project.currentMilestoneIndex = self.project.currentMilestoneIndex + 1
-                            
+                        // Check if voting threshold is reached
+                        if milestone.approvalWeight >= CharityProjectV2.VOTE_THRESHOLD_PERCENTAGE {
+                            milestone.status = MilestoneStatus.COMPLETED;
+                            self.project.status = ProjectStatus.ACTIVE;
+                            self.project.currentMilestoneIndex = self.project.currentMilestoneIndex + 1;
+
+                            // Release funds for this milestone
+                            let amountToRelease = milestone.requiredAmount;
+                            emit MilestoneCompleted(
+                                projectId: self.project.id,
+                                milestoneIndex: UInt64(self.project.currentMilestoneIndex - 1),
+                                amountReleased: amountToRelease
+                            );
+
                             // Check if project is completed
                             if self.project.currentMilestoneIndex >= self.project.milestones.length {
-                                self.project.status = ProjectStatus.COMPLETED
-                                self.returnDeposit()
-                                emit ProjectCompleted(projectId: self.project.id)
+                                self.project.status = ProjectStatus.COMPLETED;
+                                emit ProjectCompleted(projectId: self.project.id);
                             }
-                        } else if milestone.rejectionWeight >= 1.0 - CharityProjectV2.VOTE_THRESHOLD_PERCENTAGE {
-                            milestone.status = MilestoneStatus.REJECTED
-                            self.project.status = ProjectStatus.CANCELLED
+                        } else if milestone.rejectionWeight >= CharityProjectV2.VOTE_THRESHOLD_PERCENTAGE {
+                            milestone.status = MilestoneStatus.REJECTED;
+                            self.project.status = ProjectStatus.CANCELLED;
                         }
                     }
                 }
             }
         }
 
-        access(all) fun withdrawMilestoneAmount(): @FUSD.Vault {
+        access(all) fun withdrawMilestoneAmount(): UFix64 {
             pre {
                 getCurrentAuthAccount().address == self.project.creator:
-                    "Only project creator can withdraw"
+                    "Only project creator can withdraw";
                 self.project.currentMilestoneIndex > 0:
                     "No milestone completed yet"
             }
 
-            let previousMilestone = &self.project.milestones[self.project.currentMilestoneIndex - 1]
-            assert(
-                previousMilestone.status == MilestoneStatus.COMPLETED,
-                message: "Previous milestone must be completed"
-            )
+            let completedMilestone = &self.project.milestones[self.project.currentMilestoneIndex - 1] as &Milestone;
 
-            let amountToWithdraw = previousMilestone.requiredAmount
-            emit MilestoneCompleted(
-                projectId: self.project.id,
-                milestoneIndex: UInt64(self.project.currentMilestoneIndex - 1),
-                amountReleased: amountToWithdraw
-            )
-
-            return <- self.project.projectVault.withdraw(amount: amountToWithdraw)
-        }
-
-        access(all) fun returnDeposit() {
-            if self.project.status == ProjectStatus.COMPLETED {
-                let depositVault <- self.project.depositVault.withdraw(amount: self.project.depositAmount)
-                // Transfer deposit back to creator
-                let creatorAccount = getAccount(self.project.creator)
-                let creatorVaultRef = creatorAccount
-                    .getCapability(/public/fusdReceiver)
-                    .borrow<&FUSD.Vault{FungibleToken.Receiver}>()
-                    ?? panic("Could not borrow reference to creator's vault")
-                
-                creatorVaultRef.deposit(from: <-depositVault)
-                
-                emit DepositReturned(
-                    projectId: self.project.id,
-                    amount: self.project.depositAmount
-                )
+            if completedMilestone.status != MilestoneStatus.COMPLETED {
+                panic("Previous milestone must be completed")
             }
+
+            return completedMilestone.requiredAmount
         }
 
         access(all) fun getDetails(): Project {
@@ -284,17 +258,17 @@ access(all) contract CharityProjectV2 {
 
     // Contract state
     access(self) var nextProjectID: UInt64
-    access(self) let platformVault: @FUSD.Vault
-    access(self) let projects: @{UInt64: ProjectResource}
+    access(self) var totalPlatformFees: UFix64
+    access(self) var projects: @{UInt64: ProjectResource}
 
     init() {
-        self.PLATFORM_FEE_PERCENTAGE = 0.03  // 3%
-        self.DEPOSIT_PERCENTAGE = 0.07      // 7%
-        self.MILESTONE_PERCENTAGES = [0.25, 0.50, 0.75, 1.00]  // 25%, 50%, 75%, 100%
-        self.VOTE_THRESHOLD_PERCENTAGE = 0.66  // 66% approval needed
+        self.PLATFORM_FEE_PERCENTAGE = 0.03
+        self.DEPOSIT_PERCENTAGE = 0.07
+        self.MILESTONE_PERCENTAGES = [0.3, 0.3, 0.4]
+        self.VOTE_THRESHOLD_PERCENTAGE = 0.51
 
         self.nextProjectID = 1
-        self.platformVault <- FUSD.createEmptyVault()
+        self.totalPlatformFees = 0.0
         self.projects <- {}
     }
 
@@ -302,54 +276,48 @@ access(all) contract CharityProjectV2 {
         title: String,
         description: String,
         targetAmount: UFix64,
-        depositVault: @FUSD.Vault
+        depositAmount: UFix64
     ): UInt64 {
-        let depositAmount = targetAmount * (self.PLATFORM_FEE_PERCENTAGE + self.DEPOSIT_PERCENTAGE)
-        assert(
-            depositVault.balance >= depositAmount,
-            message: "Insufficient deposit amount"
-        )
-
-        // Split deposit into platform fee and project deposit
-        let platformFee = targetAmount * self.PLATFORM_FEE_PERCENTAGE
-        let platformFeeVault <- depositVault.withdraw(amount: platformFee)
-        self.platformVault.deposit(from: <-platformFeeVault)
-
-        let projectID = self.nextProjectID
+        let creator = getCurrentAuthAccount().address
+        
         let project = Project(
-            id: projectID,
-            creator: getCurrentAuthAccount().address,
+            id: self.nextProjectID,
+            creator: creator,
             title: title,
             description: description,
             targetAmount: targetAmount,
-            depositAmount: depositAmount - platformFee
-        )
-
-        // Store the deposit
-        project.depositVault.deposit(from: <-depositVault)
-
-        let projectResource <- create ProjectResource(project: project)
-        self.projects[projectID] <-! projectResource
-
-        self.nextProjectID = self.nextProjectID + 1
-
-        emit ProjectCreated(
-            id: projectID,
-            creator: project.creator,
             depositAmount: depositAmount
         )
 
-        return projectID
+        let projectResource <- create ProjectResource(project: project)
+        self.projects[self.nextProjectID] <-! projectResource
+
+        emit ProjectCreated(
+            id: self.nextProjectID,
+            creator: creator,
+            depositAmount: depositAmount
+        )
+
+        self.nextProjectID = self.nextProjectID + 1
+        return self.nextProjectID - 1
     }
 
-    access(all) fun borrowProject(id: UInt64): &ProjectResource{ProjectPublic}? {
+    access(all) fun depositFlow(amount: UFix64) {
+        // This function will be called in the transaction's execute block
+        // to deposit FLOW tokens for the project
+    }
+
+    access(all) fun borrowProject(id: UInt64): &ProjectResource? {
         if let project = &self.projects[id] as &ProjectResource? {
             return project
         }
         return nil
     }
 
-    access(all) fun getProjectCount(): UInt64 {
-        return self.nextProjectID - 1
+    access(all) fun getProject(id: UInt64): Project? {
+        if let project = self.borrowProject(id) {
+            return project.getDetails()
+        }
+        return nil
     }
 }
