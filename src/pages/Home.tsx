@@ -1,208 +1,178 @@
-import React, { useState } from 'react';
-import { ProjectGrid } from '../components/project/ProjectGrid';
-import { SearchBar } from '../components/SearchBar';
-import { CategoryFilter } from '../components/project/CategoryFilter';
-import { SortSelect } from '../components/project/SortSelect';
-import { DonationModal } from '../components/project/DonationModal';
-import { useProjects } from '../hooks/useProjects';
-import { donateToProject } from '../services/api/projects';
-import { TelegramLoginButton } from '../components/shared/TelegramLoginButton';
-import { StatisticsCard } from '../components/shared/StatisticsCard';
-import { LeaderboardCard } from '../components/shared/LeaderboardCard';
-import { CommunityUpdates } from '../components/shared/CommunityUpdates';
-import { DonationLeaderboard } from '../components/donation/DonationLeaderboard';
-import { CommunityVoting } from '../components/community/CommunityVoting';
-import { ProjectEvaluation } from '../components/project/ProjectEvaluation';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Category, Project } from '../lib/types';
+import { getProjects } from '../lib/api';
 
 export const Home: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState<'latest' | 'popular' | 'ending'>('latest');
-  const [donationTimeframe, setDonationTimeframe] = useState<'all' | 'week' | 'month'>('all');
-  const [activeTab, setActiveTab] = useState<'projects' | 'community' | 'evaluation'>('projects');
-  const [donationModal, setDonationModal] = useState<{
-    show: boolean;
-    projectId: string;
-    projectTitle: string;
-  }>({ show: false, projectId: '', projectTitle: '' });
+  const { user } = useAuth();
+  const [projects, setProjects] = React.useState<Project[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [selectedCategory, setSelectedCategory] = React.useState<Category | ''>('');
+  const [searchQuery, setSearchQuery] = React.useState('');
 
-  const { projects, loading, error } = useProjects(searchQuery, selectedCategory, sortBy);
+  const categories: (Category | 'All')[] = [
+    'All',
+    'Education',
+    'Healthcare',
+    'Environment',
+    'Technology',
+    'Arts & Culture'
+  ];
 
-  const handleDonate = async (amount: number) => {
+  const fetchProjects = async () => {
     try {
-      await donateToProject(donationModal.projectId, amount);
-      setDonationModal({ show: false, projectId: '', projectTitle: '' });
-    } catch (err) {
-      console.error('Failed to donate:', err);
+      console.log('Fetching projects with options:', {
+        category: selectedCategory,
+        search: searchQuery
+      });
+      const data = await getProjects({
+        category: selectedCategory as Category,
+        search: searchQuery || undefined
+      });
+      console.log('Fetched projects:', data);
+      setProjects(data);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Mock data for demonstration
-  const mockDonations = [
-    {
-      donor: 'Alice',
-      amount: 1000,
-      tokenType: 'FLOW',
-      timestamp: new Date(),
-      projectTitle: 'Education Fund'
-    },
-    // Add more mock donations...
-  ];
+  React.useEffect(() => {
+    fetchProjects();
+  }, [selectedCategory, searchQuery]);
 
-  const mockProposals = [
-    {
-      id: '1',
-      title: 'Community Fund Allocation',
-      description: 'How should we allocate the community fund for Q1 2024?',
-      options: ['Education', 'Healthcare', 'Environment'],
-      votes: [45, 30, 25],
-      startTime: new Date(),
-      endTime: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      status: 'active' as const
-    },
-    // Add more mock proposals...
-  ];
+  const getProgressPercentage = (project: Project) => {
+    return (project.current_amount / project.target_amount) * 100;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 mb-8 text-white">
-        <h1 className="text-4xl font-bold mb-4">Make a Difference Today</h1>
-        <p className="text-xl mb-6">Join our decentralized charity platform powered by Flow blockchain</p>
-        <div className="flex gap-4">
-          <Link to="/create-project" className="bg-white text-blue-600 px-6 py-2 rounded-lg font-semibold hover:bg-blue-50">
-            Start a Project
-          </Link>
-          <TelegramLoginButton />
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-8">
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 mb-8 text-white">
+          <h1 className="text-4xl font-bold mb-4">Make a Difference Today</h1>
+          <p className="text-lg mb-6">
+            Support meaningful projects and track their progress through milestones.
+          </p>
+          {user?.loggedIn ? (
+            <Link
+              to="/create"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Start a Project
+            </Link>
+          ) : (
+            <button
+              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={() => alert('Please connect your wallet first')}
+            >
+              Connect Wallet to Start
+            </button>
+          )}
         </div>
-      </div>
 
-      {/* Statistics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatisticsCard title="Total Donations" value="1,234,567 FLOW" />
-        <StatisticsCard title="Active Projects" value="156" />
-        <StatisticsCard title="Total Donors" value="45,678" />
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-200 mb-8">
-        <button
-          onClick={() => setActiveTab('projects')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'projects'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Projects
-        </button>
-        <button
-          onClick={() => setActiveTab('community')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'community'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Community
-        </button>
-        <button
-          onClick={() => setActiveTab('evaluation')}
-          className={`px-4 py-2 font-medium ${
-            activeTab === 'evaluation'
-              ? 'text-blue-600 border-b-2 border-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-        >
-          Evaluation
-        </button>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="lg:col-span-2">
-          {activeTab === 'projects' && (
-            <div className="space-y-6">
-              <SearchBar onSearch={setSearchQuery} />
-              
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex-grow">
-                  <CategoryFilter
-                    selectedCategory={selectedCategory}
-                    onSelect={setSelectedCategory}
-                  />
-                </div>
-                <div className="w-full sm:w-48">
-                  <SortSelect value={sortBy} onChange={setSortBy} />
-                </div>
-              </div>
-
-              <ProjectGrid
-                projects={projects}
-                loading={loading}
-                error={error}
-                onDonate={(projectId) => {
-                  const project = projects.find(p => p.id === projectId);
-                  if (project) {
-                    setDonationModal({
-                      show: true,
-                      projectId,
-                      projectTitle: project.title
-                    });
-                  }
-                }}
-              />
-            </div>
-          )}
-
-          {activeTab === 'community' && (
-            <CommunityVoting
-              proposals={mockProposals}
-              onVote={(proposalId, optionIndex) => {
-                console.log('Voted:', proposalId, optionIndex);
-              }}
-              onCreateProposal={(proposal) => {
-                console.log('Created proposal:', proposal);
-              }}
-            />
-          )}
-
-          {activeTab === 'evaluation' && (
-            <div className="space-y-8">
-              {projects.map(project => (
-                <ProjectEvaluation
-                  key={project.id}
-                  projectId={project.id}
-                  onSubmit={(evaluation) => {
-                    console.log('Submitted evaluation:', evaluation);
-                  }}
-                />
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category === 'All' ? '' : category as Category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium ${
+                    (category === 'All' && !selectedCategory) ||
+                    category === selectedCategory
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                  }`}
+                >
+                  {category}
+                </button>
               ))}
             </div>
+            <div className="w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project) => (
+            <div
+              key={project.id}
+              className="bg-white rounded-lg shadow overflow-hidden"
+            >
+              <img
+                src={project.image_url}
+                alt={project.title}
+                className="w-full h-48 object-cover"
+              />
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    {project.category}
+                  </span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    project.status === 'ACTIVE'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {project.status}
+                  </span>
+                </div>
+
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  {project.title}
+                </h3>
+
+                <p className="text-gray-600 mb-4 line-clamp-3">
+                  {project.description}
+                </p>
+
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progress</span>
+                    <span>{project.current_amount} / {project.target_amount} FUSD</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full"
+                      style={{ width: `${getProgressPercentage(project)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <Link
+                  to={`/project/${project.id}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+          ))}
+
+          {projects.length === 0 && (
+            <div className="col-span-full text-center text-gray-500 py-12">
+              No projects found matching your criteria
+            </div>
           )}
         </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          <DonationLeaderboard
-            donations={mockDonations}
-            timeframe={donationTimeframe}
-            onTimeframeChange={setDonationTimeframe}
-          />
-          <CommunityUpdates />
-        </div>
       </div>
-
-      {donationModal.show && (
-        <DonationModal
-          projectId={donationModal.projectId}
-          projectTitle={donationModal.projectTitle}
-          onDonate={handleDonate}
-          onClose={() => setDonationModal({ show: false, projectId: '', projectTitle: '' })}
-        />
-      )}
     </div>
   );
 };
