@@ -7,7 +7,7 @@ import { CharityProject__factory } from '../types/factories/CharityProject__fact
 
 // Flow EVM Testnet 配置
 const FLOW_TESTNET = {
-  id: 545,
+  id: 747,
   name: 'Flow EVM Testnet',
   nativeCurrency: {
     decimals: 18,
@@ -100,19 +100,22 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [connected, walletAddress]);
 
   const logIn = async () => {
-    if (!client) return;
+    if (!client) {
+      console.error('OKX client not initialized');
+      return;
+    }
     try {
-      // 检查是否在 Telegram 环境中
-      const isTelegram = window.Telegram?.WebApp;
-
+      console.log('Opening OKX modal...');
       const session = await client.openModal({
         namespaces: {
           eip155: {
-            chains: ['eip155:747'],
-            defaultChain: '747',
+            chains: [`eip155:${FLOW_TESTNET.id}`],
+            defaultChain: FLOW_TESTNET.id.toString(),
           },
         },
       });
+
+      console.log('Session response:', session);
 
       if (!session || !session.namespaces.eip155) {
         console.error('Session is undefined or invalid');
@@ -122,40 +125,26 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
       const address = session.namespaces.eip155.accounts[0]?.split(':')[2];
       const chain = session.namespaces.eip155.chains[0]?.split(':')[1] || null;
 
-      if (isTelegram) {
-        // 使用 Telegram WebApp API
-        const provider = new ethers.providers.Web3Provider(window.okxwallet);
-        const newSigner = provider.getSigner();
-        const signerAddress = await newSigner.getAddress();
+      console.log('Connected address:', address);
+      console.log('Connected chain:', chain);
 
-        if (!signerAddress) {
-          throw new Error('Failed to get signer address');
-        }
+      // 等待 window.ethereum 可用
+      if (!window.ethereum) {
+        console.error('No ethereum provider found');
+        throw new Error('No ethereum provider found');
+      }
 
-        setWalletAddress(signerAddress);
-        setChainId(chain);
-        setConnected(true);
-        setSigner(newSigner);
-
-        // 初始化合约
-        const contractAddress = import.meta.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-        if (contractAddress) {
-          const contract = CharityProject__factory.connect(contractAddress, newSigner);
-          setCharityContract(contract);
-        }
-      } else {
-        // Web 环境的处理逻辑
-        if (!window.ethereum) {
-          throw new Error('No ethereum provider found');
-        }
-
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${FLOW_TESTNET.id.toString(16)}` }],
-          });
-        } catch (switchError: any) {
-          if (switchError.code === 4902) {
+      console.log('Switching to Flow EVM Testnet...');
+      // 请求切换到 Flow EVM Testnet
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${FLOW_TESTNET.id.toString(16)}` }],
+        });
+      } catch (switchError: any) {
+        // 如果链未添加，则添加它
+        if (switchError.code === 4902) {
+          try {
             await window.ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [
@@ -168,38 +157,63 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
                 },
               ],
             });
-          } else {
-            throw switchError;
+          } catch (addError) {
+            console.error('Error adding Flow EVM chain:', addError);
+            throw addError;
           }
-        }
-
-        await window.ethereum.request({
-          method: 'eth_requestAccounts'
-        });
-
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        await provider.ready;
-
-        const newSigner = provider.getSigner();
-        const signerAddress = await newSigner.getAddress();
-
-        if (!signerAddress) {
-          throw new Error('Failed to get signer address');
-        }
-
-        setWalletAddress(signerAddress);
-        setChainId(chain);
-        setConnected(true);
-        setSigner(newSigner);
-
-        const contractAddress = import.meta.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
-        if (contractAddress) {
-          const contract = CharityProject__factory.connect(contractAddress, newSigner);
-          setCharityContract(contract);
+        } else {
+          throw switchError;
         }
       }
+
+      // 请求用户授权
+      await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      // 创建 provider 和 signer
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.ready; // 等待 provider 准备就绪
+
+      const newSigner = provider.getSigner();
+      const signerAddress = await newSigner.getAddress();
+
+      if (!signerAddress) {
+        throw new Error('Failed to get signer address');
+      }
+
+      // 初始化合约
+      const contractAddress = import.meta.env.NEXT_PUBLIC_CONTRACT_ADDRESS || "0xA3a800F6EcB9dAed1D7B3B314931c1568c1fBc02";
+      if (!contractAddress) {
+        throw new Error('Contract address not found in environment variables (NEXT_PUBLIC_CONTRACT_ADDRESS)');
+      }
+      console.log('Using contract address:', contractAddress);
+
+      const contract = CharityProject__factory.connect(contractAddress, newSigner);
+
+      setWalletAddress(signerAddress);
+      setChainId(chain);
+      setConnected(true);
+      setSigner(newSigner);
+      setCharityContract(contract);
+
+      // 监听链切换事件
+      window.ethereum.on('chainChanged', (chainId: string) => {
+        window.location.reload();
+      });
+
+      // 监听账户切换事件
+      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        if (accounts.length === 0) {
+          logOut();
+        } else {
+          setWalletAddress(accounts[0]);
+        }
+      });
+
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+      await logOut();
       throw error;
     }
   };
@@ -208,7 +222,7 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!client) return;
     try {
       await client.disconnect();
-
+      
       // 移除事件监听器
       if (window.ethereum) {
         window.ethereum.removeAllListeners('chainChanged');
