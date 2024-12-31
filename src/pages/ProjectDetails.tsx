@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ethers } from 'ethers';
-import { Project, Milestone, getProjectById, getProjectMilestones, createDonation, updateProjectAmount, getProjectImage } from '../lib/supabase';
+import { Project, Milestone } from '../lib/types';
+import { getProjectById, getProjectMilestones, createDonation, updateProjectAmount } from '../lib/supabase';
+import { getProjectImage } from '../utils/imageUtils';
 import { DonationHistory } from '../components/DonationHistory';
 
 export const ProjectDetails: React.FC = () => {

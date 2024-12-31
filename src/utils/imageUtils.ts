@@ -1,3 +1,4 @@
+import { Category } from '../lib/types';
 // 根据项目类别返回相应的 Unsplash 图片
 export const getProjectImage = (category: string, imageUrl?: string | null): string => {
   if (imageUrl) {

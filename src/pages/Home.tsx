@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Category, Project } from '../lib/types';
-import { getProjects } from '../lib/api';
+import { getProjects } from '../lib/supabase';
 import { getProjectImage } from '../utils/imageUtils';
 import { ContractTest } from '../components/ContractTest';
 import { SyncProjectButton } from '../components/project/SyncProjectButton';
