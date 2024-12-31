@@ -40,7 +40,7 @@ export default function RootLayout({
 							},
 							// Flow EVM configuration
 							defaultChain: {
-								id: 747,
+								id: 545,
 								name: 'Flow',
 								network: 'flow',
 								nativeCurrency: {
@@ -51,7 +51,7 @@ export default function RootLayout({
 								rpcUrls: {
 									default: {
 										http: [
-											'https://mainnet.evm.nodes.onflow.org',
+											'https://testnet.evm.nodes.onflow.org',
 										],
 									},
 								},
@@ -64,7 +64,7 @@ export default function RootLayout({
 							},
 							supportedChains: [
 								{
-									id: 747,
+									id: 545,
 									name: 'Flow',
 									network: 'flow',
 									nativeCurrency: {
@@ -75,7 +75,7 @@ export default function RootLayout({
 									rpcUrls: {
 										default: {
 											http: [
-												'https://mainnet.evm.nodes.onflow.org',
+												'https://testnet.evm.nodes.onflow.org',
 											],
 										},
 									},

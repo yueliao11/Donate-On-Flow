@@ -7,7 +7,7 @@ import { CharityProject__factory } from '../types/factories/CharityProject__fact
 
 // Flow EVM Testnet 配置
 const FLOW_TESTNET = {
-  id: 747,
+  id: 545,
   name: 'Flow EVM Testnet',
   nativeCurrency: {
     decimals: 18,
