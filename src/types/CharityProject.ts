@@ -8,7 +8,6 @@ import type {
   BytesLike,
   CallOverrides,
   ContractTransaction,
-  Overrides,
   PayableOverrides,
   PopulatedTransaction,
   Signer,
@@ -29,20 +28,30 @@ import type {
 
 export interface CharityProjectInterface extends utils.Interface {
   functions: {
+    "MINIMUM_FEE()": FunctionFragment;
     "createProject(string,string,uint256)": FunctionFragment;
     "donate(uint256)": FunctionFragment;
+    "getMinimumFee()": FunctionFragment;
+    "getProjectCount()": FunctionFragment;
     "projectCount()": FunctionFragment;
     "projects(uint256)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
+      | "MINIMUM_FEE"
       | "createProject"
       | "donate"
+      | "getMinimumFee"
+      | "getProjectCount"
       | "projectCount"
       | "projects"
   ): FunctionFragment;
 
+  encodeFunctionData(
+    functionFragment: "MINIMUM_FEE",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "createProject",
     values: [string, string, BigNumberish]
@@ -50,6 +59,14 @@ export interface CharityProjectInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "donate",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getMinimumFee",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getProjectCount",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "projectCount",
@@ -61,10 +78,22 @@ export interface CharityProjectInterface extends utils.Interface {
   ): string;
 
   decodeFunctionResult(
+    functionFragment: "MINIMUM_FEE",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "createProject",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "donate", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getMinimumFee",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getProjectCount",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "projectCount",
     data: BytesLike
@@ -73,10 +102,12 @@ export interface CharityProjectInterface extends utils.Interface {
 
   events: {
     "DonationReceived(uint256,address,uint256)": EventFragment;
+    "MinimumFeePaid(uint256,address)": EventFragment;
     "ProjectCreated(uint256,string,uint256)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "DonationReceived"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "MinimumFeePaid"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "ProjectCreated"): EventFragment;
 }
 
@@ -92,6 +123,17 @@ export type DonationReceivedEvent = TypedEvent<
 
 export type DonationReceivedEventFilter =
   TypedEventFilter<DonationReceivedEvent>;
+
+export interface MinimumFeePaidEventObject {
+  projectId: BigNumber;
+  owner: string;
+}
+export type MinimumFeePaidEvent = TypedEvent<
+  [BigNumber, string],
+  MinimumFeePaidEventObject
+>;
+
+export type MinimumFeePaidEventFilter = TypedEventFilter<MinimumFeePaidEvent>;
 
 export interface ProjectCreatedEventObject {
   projectId: BigNumber;
@@ -132,11 +174,13 @@ export interface CharityProject extends BaseContract {
   removeListener: OnEvent<this>;
 
   functions: {
+    MINIMUM_FEE(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     createProject(
       title: string,
       description: string,
       targetAmount: BigNumberish,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
     donate(
@@ -144,28 +188,45 @@ export interface CharityProject extends BaseContract {
       overrides?: PayableOverrides & { from?: string }
     ): Promise<ContractTransaction>;
 
+    getMinimumFee(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    getProjectCount(overrides?: CallOverrides): Promise<[BigNumber]>;
+
     projectCount(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     projects(
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [string, string, BigNumber, BigNumber, string, boolean] & {
+      [
+        string,
+        string,
+        BigNumber,
+        BigNumber,
+        string,
+        boolean,
+        BigNumber,
+        boolean
+      ] & {
         title: string;
         description: string;
         targetAmount: BigNumber;
         currentAmount: BigNumber;
         owner: string;
         isActive: boolean;
+        minimumFee: BigNumber;
+        isMinimumFeePaid: boolean;
       }
     >;
   };
+
+  MINIMUM_FEE(overrides?: CallOverrides): Promise<BigNumber>;
 
   createProject(
     title: string,
     description: string,
     targetAmount: BigNumberish,
-    overrides?: Overrides & { from?: string }
+    overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
   donate(
@@ -173,23 +234,40 @@ export interface CharityProject extends BaseContract {
     overrides?: PayableOverrides & { from?: string }
   ): Promise<ContractTransaction>;
 
+  getMinimumFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+  getProjectCount(overrides?: CallOverrides): Promise<BigNumber>;
+
   projectCount(overrides?: CallOverrides): Promise<BigNumber>;
 
   projects(
     arg0: BigNumberish,
     overrides?: CallOverrides
   ): Promise<
-    [string, string, BigNumber, BigNumber, string, boolean] & {
+    [
+      string,
+      string,
+      BigNumber,
+      BigNumber,
+      string,
+      boolean,
+      BigNumber,
+      boolean
+    ] & {
       title: string;
       description: string;
       targetAmount: BigNumber;
       currentAmount: BigNumber;
       owner: string;
       isActive: boolean;
+      minimumFee: BigNumber;
+      isMinimumFeePaid: boolean;
     }
   >;
 
   callStatic: {
+    MINIMUM_FEE(overrides?: CallOverrides): Promise<BigNumber>;
+
     createProject(
       title: string,
       description: string,
@@ -199,19 +277,34 @@ export interface CharityProject extends BaseContract {
 
     donate(projectId: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
+    getMinimumFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getProjectCount(overrides?: CallOverrides): Promise<BigNumber>;
+
     projectCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     projects(
       arg0: BigNumberish,
       overrides?: CallOverrides
     ): Promise<
-      [string, string, BigNumber, BigNumber, string, boolean] & {
+      [
+        string,
+        string,
+        BigNumber,
+        BigNumber,
+        string,
+        boolean,
+        BigNumber,
+        boolean
+      ] & {
         title: string;
         description: string;
         targetAmount: BigNumber;
         currentAmount: BigNumber;
         owner: string;
         isActive: boolean;
+        minimumFee: BigNumber;
+        isMinimumFeePaid: boolean;
       }
     >;
   };
@@ -228,6 +321,15 @@ export interface CharityProject extends BaseContract {
       amount?: null
     ): DonationReceivedEventFilter;
 
+    "MinimumFeePaid(uint256,address)"(
+      projectId?: BigNumberish | null,
+      owner?: string | null
+    ): MinimumFeePaidEventFilter;
+    MinimumFeePaid(
+      projectId?: BigNumberish | null,
+      owner?: string | null
+    ): MinimumFeePaidEventFilter;
+
     "ProjectCreated(uint256,string,uint256)"(
       projectId?: BigNumberish | null,
       title?: null,
@@ -241,17 +343,23 @@ export interface CharityProject extends BaseContract {
   };
 
   estimateGas: {
+    MINIMUM_FEE(overrides?: CallOverrides): Promise<BigNumber>;
+
     createProject(
       title: string,
       description: string,
       targetAmount: BigNumberish,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
 
     donate(
       projectId: BigNumberish,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<BigNumber>;
+
+    getMinimumFee(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getProjectCount(overrides?: CallOverrides): Promise<BigNumber>;
 
     projectCount(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -259,17 +367,23 @@ export interface CharityProject extends BaseContract {
   };
 
   populateTransaction: {
+    MINIMUM_FEE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
     createProject(
       title: string,
       description: string,
       targetAmount: BigNumberish,
-      overrides?: Overrides & { from?: string }
+      overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
 
     donate(
       projectId: BigNumberish,
       overrides?: PayableOverrides & { from?: string }
     ): Promise<PopulatedTransaction>;
+
+    getMinimumFee(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getProjectCount(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     projectCount(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

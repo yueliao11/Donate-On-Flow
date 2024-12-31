@@ -43,7 +43,7 @@ export const MilestoneProgress: React.FC<MilestoneProgressProps> = ({
   };
 
   const getStepLabel = (milestone: Milestone) => {
-    return `${(milestone.percentage * 100).toFixed(0)}% (${milestone.currentAmount}/${milestone.requiredAmount} FUSD)`;
+    return `${(milestone.percentage * 100).toFixed(0)}% (${milestone.currentAmount}/${milestone.requiredAmount} FLOW)`;
   };
 
   return (

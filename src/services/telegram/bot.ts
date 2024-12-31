@@ -12,7 +12,7 @@ export class TelegramBotService {
 
   private setupCommands() {
     this.bot.command('start', (ctx) => {
-      ctx.reply('Welcome to CharityFlow! 🌟\n\nI can help you:\n' +
+      ctx.reply('Welcome to Donate On Flow! 🌟\n\nI can help you:\n' +
         '📋 Create new charity projects\n' +
         '💰 Track donations\n' +
         '📢 Share projects with your community\n' +
@@ -53,7 +53,7 @@ export class TelegramBotService {
   }
 
   public async shareProject(chatId: string, projectData: any) {
-    const message = `🌟 New Charity Project!\n\n` +
+    const message = `🌟 New Project on Flow!\n\n` +
       `📋 ${projectData.title}\n` +
       `💬 ${projectData.description}\n` +
       `🎯 Target: ${projectData.targetAmount} FLOW\n` +

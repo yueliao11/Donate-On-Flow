@@ -70,7 +70,7 @@ export const DonationHistory: React.FC<DonationHistoryProps> = ({ projectId }) =
                   {donation.donor_address.slice(0, 8)}...{donation.donor_address.slice(-4)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                  {donation.amount} FUSD
+                  {donation.amount} FLOW
                 </td>
                 <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                   {new Date(donation.created_at).toLocaleDateString()}

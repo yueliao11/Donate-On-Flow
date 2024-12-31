@@ -42,7 +42,7 @@ export const ProjectTokenInfo: React.FC<ProjectTokenInfoProps> = ({
         
         <div className="mt-6 p-4 bg-blue-50 rounded-md">
           <p className="text-sm text-blue-600">
-            By donating {donationAmount} FUSD, you will receive {calculateTokenAllocation().toLocaleString()} {tokenSymbol} tokens.
+            By donating {donationAmount} FLOW, you will receive {calculateTokenAllocation().toLocaleString()} {tokenSymbol} tokens.
             These tokens grant you voting rights and access to project updates.
           </p>
         </div>

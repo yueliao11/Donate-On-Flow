@@ -94,10 +94,10 @@ export const MilestoneVoting: React.FC<MilestoneVotingProps> = ({ project, onVot
         
         <div className="mt-2 max-w-xl text-sm text-gray-500">
           <p>
-            Current milestone: {currentMilestone.percentage}% ({currentMilestone.currentAmount.toFixed(2)} FUSD)
+            Current milestone: {currentMilestone.percentage}% ({currentMilestone.currentAmount.toFixed(2)} FLOW)
           </p>
           <p className="mt-1">
-            Required amount: {currentMilestone.requiredAmount.toFixed(2)} FUSD
+            Required amount: {currentMilestone.requiredAmount.toFixed(2)} FLOW
           </p>
         </div>
 

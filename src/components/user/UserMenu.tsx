@@ -40,7 +40,7 @@ export const UserMenu: React.FC = () => {
         <Menu.Items className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 divide-y divide-gray-100 focus:outline-none">
           <div className="px-4 py-3">
             <p className="text-sm text-gray-500">Wallet Balance</p>
-            <p className="text-sm font-medium text-gray-900">{fusdBalance.toFixed(2)} FUSD</p>
+            <p className="text-sm font-medium text-gray-900">{fusdBalance.toFixed(2)} FLOW</p>
           </div>
 
           <div className="py-1">

@@ -24,6 +24,8 @@ export interface Project {
   end_date: string;
   created_at: string;
   updated_at: string;
+  chain_project_id: number;
+  minimum_fee_paid: boolean;
 }
 
 export interface Milestone {

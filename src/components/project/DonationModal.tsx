@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import * as fcl from '@onflow/fcl';
+import { ethers } from 'ethers';
 
 interface DonationModalProps {
   projectId: number;
@@ -15,16 +15,14 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   onClose,
   onDonationComplete,
 }) => {
-  const { user, logIn } = useAuth();
-  const connected = user?.addr !== null;
-  const walletAddress = user?.addr;
+  const { connected, walletAddress, charityContract, logIn } = useAuth();
   const [amount, setAmount] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!connected || !walletAddress) {
+    if (!connected || !walletAddress || !charityContract) {
       alert('Please connect your wallet first');
       return;
     }
@@ -36,38 +34,17 @@ export const DonationModal: React.FC<DonationModalProps> = ({
 
     setLoading(true);
     try {
-      const transactionId = await fcl.mutate({
-        cadence: `
-          import CharityProject from 0x945c254064cc292c35FA8516AFD415a73A0b23A0
-          import FUSD from 0x9a0766d93b6608b7
-
-          transaction(projectId: UInt64, amount: UFix64) {
-            prepare(signer: AuthAccount) {
-              let vaultRef = signer.borrow<&FUSD.Vault>(from: /storage/fusdVault)
-                ?? panic("Could not borrow reference to the owner's Vault!")
-
-              let donation <- vaultRef.withdraw(amount: amount)
-              CharityProject.donate(projectId: projectId, donation: <-donation)
-            }
-          }
-        `,
-        args: (arg: any, t: any) => [
-          arg(projectId, t.UInt64),
-          arg(amount, t.UFix64),
-        ],
-        payer: fcl.authz,
-        proposer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 999,
+      const tx = await charityContract.donate(projectId, {
+        value: ethers.utils.parseEther(amount)
       });
-
-      await fcl.tx(transactionId).onceSealed();
+      
+      await tx.wait();
       onDonationComplete();
       onClose();
       setAmount('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error donating:', error);
-      alert('Failed to donate. Please try again.');
+      alert(error.message || 'Failed to donate. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,36 +78,37 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                 htmlFor="amount"
                 className="block text-sm font-medium text-gray-700"
               >
-                Amount (FUSD)
+                Amount (FLOW)
               </label>
-              <input
-                type="number"
-                id="amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                min="0.1"
-                step="0.1"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
+              <div className="mt-1">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  id="amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className={`inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className="inline-flex justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
               >
-                {loading ? 'Donating...' : 'Donate'}
+                {loading ? 'Processing...' : 'Donate'}
               </button>
             </div>
           </form>

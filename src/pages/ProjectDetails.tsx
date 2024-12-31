@@ -1,13 +1,13 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import * as fcl from '@onflow/fcl';
-import { Project, Milestone, getProjectById, getProjectMilestones, createDonation, updateProjectAmount } from '../lib/supabase';
+import { ethers } from 'ethers';
+import { Project, Milestone, getProjectById, getProjectMilestones, createDonation, updateProjectAmount, getProjectImage } from '../lib/supabase';
 import { DonationHistory } from '../components/DonationHistory';
 
 export const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, charityContract, signer } = useAuth();
   const [project, setProject] = React.useState<Project | null>(null);
   const [milestones, setMilestones] = React.useState<Milestone[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -38,7 +38,7 @@ export const ProjectDetails: React.FC = () => {
   const handleDonate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.addr) {
+    if (!user?.addr || !charityContract || !signer) {
       alert('Please connect your wallet first');
       return;
     }
@@ -54,47 +54,33 @@ export const ProjectDetails: React.FC = () => {
     }
 
     try {
-      const transactionId = await fcl.mutate({
-        cadence: `
-          import CharityProject from 0x945c254064cc292c35FA8516AFD415a73A0b23A0
-          import FUSD from 0x9a0766d93b6608b7
+      const donationWei = ethers.utils.parseEther(donationAmount);
+      console.log('Donating amount in wei:', donationWei.toString());
 
-          transaction(projectId: UInt64, amount: UFix64) {
-            prepare(signer: AuthAccount) {
-              let vaultRef = signer.borrow<&FUSD.Vault>(from: /storage/fusdVault)
-                ?? panic("Could not borrow reference to the owner's Vault!")
-
-              let donation <- vaultRef.withdraw(amount: amount)
-              CharityProject.donate(projectId: projectId, donation: <-donation)
-            }
-          }
-        `,
-        args: (arg: any, t: any) => [
-          arg(id, t.UInt64),
-          arg(donationAmount, t.UFix64),
-        ],
-        payer: fcl.authz,
-        proposer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 999,
+      const tx = await charityContract.donate(project.chain_project_id, {
+        value: donationWei,
+        gasLimit: 500000 
       });
 
-      await fcl.tx(transactionId).onceSealed();
+      console.log('Transaction sent:', tx.hash);
       
-      // Update Supabase records
+      const receipt = await tx.wait();
+      console.log('Transaction confirmed:', receipt);
+      
       await createDonation({
-        project_id: parseInt(id),
+        project_id: parseInt(id!),
         donor_address: user.addr,
         amount: parseFloat(donationAmount),
-        transaction_id: transactionId,
+        transaction_id: tx.hash,
       });
 
       const newAmount = project.current_amount + parseFloat(donationAmount);
-      await updateProjectAmount(parseInt(id), newAmount);
+      await updateProjectAmount(parseInt(id!), newAmount);
       
-      // Refresh project data
       fetchProjectData();
       setDonationAmount('');
+      
+      alert('Donation successful!');
     } catch (error) {
       console.error('Error donating:', error);
       alert('Failed to donate. Please try again.');
@@ -142,12 +128,17 @@ export const ProjectDetails: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="p-8">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+        <div className="relative h-96">
+          <img
+            src={getProjectImage(project.category, project.image_url)}
+            alt={project.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-0 right-0 mt-4 mr-4 flex gap-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               {project.category}
             </span>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               project.status === 'ACTIVE'
                 ? 'bg-green-100 text-green-800'
                 : 'bg-gray-100 text-gray-800'
@@ -155,7 +146,8 @@ export const ProjectDetails: React.FC = () => {
               {project.status}
             </span>
           </div>
-
+        </div>
+        <div className="p-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             {project.title}
           </h1>
@@ -163,7 +155,7 @@ export const ProjectDetails: React.FC = () => {
           <div className="mb-8">
             <div className="flex justify-between text-sm text-gray-600 mb-1">
               <span>Progress</span>
-              <span>{project.current_amount} / {project.target_amount} FUSD</span>
+              <span>{project.current_amount} / {project.target_amount} </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -219,8 +211,8 @@ export const ProjectDetails: React.FC = () => {
                       {milestone.description}
                     </p>
                     <div className="flex justify-between text-sm text-gray-500">
-                      <span>Required: {milestone.required_amount} FUSD</span>
-                      <span>Current: {milestone.current_amount} FUSD</span>
+                      <span>Required: {milestone.required_amount} FLOW</span>
+                      <span>Current: {milestone.current_amount} FLOW</span>
                     </div>
                   </div>
                 );
@@ -237,7 +229,7 @@ export const ProjectDetails: React.FC = () => {
                 <form onSubmit={handleDonate} className="space-y-4">
                   <div>
                     <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                      Amount (FUSD)
+                      Amount (FLOW)
                     </label>
                     <div className="mt-1">
                       <input

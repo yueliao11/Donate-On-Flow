@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Category, Project } from '../lib/types';
 import { getProjects } from '../lib/api';
+import { getProjectImage } from '../utils/imageUtils';
+import { ContractTest } from '../components/ContractTest';
+import { SyncProjectButton } from '../components/project/SyncProjectButton';
 
 export const Home: React.FC = () => {
   const { user } = useAuth();
@@ -112,29 +115,20 @@ export const Home: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((project) => (
-            <div
-              key={project.id}
-              className="bg-white rounded-lg shadow overflow-hidden"
-            >
-              <img
-                src={project.image_url}
-                alt={project.title}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+            <div key={project.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="relative h-48">
+                <img
+                  src={getProjectImage(project.category, project.image_url)}
+                  alt={project.title}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-0 right-0 mt-2 mr-2">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                     {project.category}
                   </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    project.status === 'ACTIVE'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {project.status}
-                  </span>
                 </div>
-
+              </div>
+              <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {project.title}
                 </h3>
@@ -146,7 +140,7 @@ export const Home: React.FC = () => {
                 <div className="mb-4">
                   <div className="flex justify-between text-sm text-gray-600 mb-1">
                     <span>Progress</span>
-                    <span>{project.current_amount} / {project.target_amount} FUSD</span>
+                    <span>{project.current_amount} / {project.target_amount} FLOW</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -156,12 +150,18 @@ export const Home: React.FC = () => {
                   </div>
                 </div>
 
-                <Link
-                  to={`/project/${project.id}`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  View Details
-                </Link>
+                <div className="flex justify-between items-center mt-4">
+                  <Link
+                    to={`/project/${project.id}`}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    View Details →
+                  </Link>
+                  <SyncProjectButton 
+                    project={project} 
+                    onSync={() => fetchProjects()} 
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -173,6 +173,12 @@ export const Home: React.FC = () => {
           )}
         </div>
       </div>
+     {/* <div className="container mx-auto px-4 py-8">
+        <h2 className="text-2xl font-bold mb-4">
+          Donate On Flow Testing
+        </h2>
+        <ContractTest />
+      </div>*/}
     </div>
   );
 };
