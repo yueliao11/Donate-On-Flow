@@ -10,6 +10,7 @@ export const Navigation: React.FC = () => {
   const { connected, walletAddress, logIn, logOut, signer } = useAuth();
   const [balance, setBalance] = useState<string>('0');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isTelegram] = useState(() => Boolean(window.Telegram?.WebApp));
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -68,8 +69,11 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <TelegramUser />
-            
+            {isTelegram ? (
+              <TelegramUser />
+            ) : (
+              <div>Welcome!</div>
+            )}
             {connected ? (
               <Menu as="div" className="relative ml-3">
                 <Menu.Button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-lg border border-gray-300">
