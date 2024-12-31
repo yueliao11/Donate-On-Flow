@@ -6,6 +6,8 @@ import { Project, Milestone } from '../lib/types';
 import { getProjectById, getProjectMilestones, createDonation, updateProjectAmount } from '../lib/supabase';
 import { getProjectImage } from '../utils/imageUtils';
 import { DonationHistory } from '../components/DonationHistory';
+import { AIEnhancedDescription } from '../components/project/AIEnhancedDescription';
+import { LanguageTranslator } from '../components/shared/LanguageTranslator';
 
 export const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -87,6 +89,14 @@ export const ProjectDetails: React.FC = () => {
       console.error('Error donating:', error);
       alert('Failed to donate. Please try again.');
     }
+  };
+
+  const handleShare = () => {
+    const projectUrl = window.location.href; 
+    const description = 'Check out this amazing project!'; 
+    const tags = '#Project #Web3'; 
+    const telegramShareLink = `https://telegram.me/share/url?url=${encodeURIComponent(projectUrl)}&text=${encodeURIComponent(description + ' ' + tags)}`;
+    window.open(telegramShareLink, '_blank'); 
   };
 
   if (loading) {
@@ -171,9 +181,15 @@ export const ProjectDetails: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               About This Project
             </h2>
-            <p className="text-gray-600">
-              {project.description}
-            </p>
+            <AIEnhancedDescription 
+              originalDescription={project.description} 
+              onEnhanced={(enhanced) => {
+                setProject(prev => prev ? {...prev, description: enhanced} : null);
+              }}
+            />
+            <div className="mt-6">
+              <LanguageTranslator content={project.description} />
+            </div>
           </div>
 
           <div className="mb-8">
@@ -273,6 +289,13 @@ export const ProjectDetails: React.FC = () => {
           <div className="border-t pt-8 mt-8">
             <DonationHistory projectId={parseInt(id!)} />
           </div>
+
+          <button
+            onClick={handleShare}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Share on Telegram
+          </button>
         </div>
       </div>
     </div>
