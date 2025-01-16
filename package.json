@@ -16,7 +16,7 @@
     "@heroicons/react": "^2.2.0",
     "@mui/icons-material": "^6.3.0",
     "@mui/material": "^6.3.0",
-    "@okxconnect/ui": "^1.6.4",
+    "@okxconnect/ui": "^1.6.9",
     "@onflow/fcl": "^1.13.4",
     "@openzeppelin/contracts": "^5.1.0",
     "@supabase/supabase-js": "^2.47.10",

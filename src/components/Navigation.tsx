@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import { Menu } from '@headlessui/react';
 import { WalletIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { TelegramUser } from './TelegramUser';
+import { LoginButton } from './auth/LoginButton';
 
 export const Navigation: React.FC = () => {
   const { connected, walletAddress, logIn, logOut, signer } = useAuth();
@@ -68,7 +69,8 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-           {/* <TelegramUser />*/}Welcome! 
+            <LoginButton />
+            {/* <TelegramUser />*/}Welcome! 
             
             {connected ? (
               <Menu as="div" className="relative ml-3">
