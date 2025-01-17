@@ -6,8 +6,11 @@ import { getProjects } from '../lib/supabase';
 import { getProjectImage } from '../utils/imageUtils';
 import { ContractTest } from '../components/ContractTest';
 import { SyncProjectButton } from '../components/project/SyncProjectButton';
+import { useWallet } from '../contexts/WalletContext';
+import { LoginWithPrivy } from '../components/LoginWithPrivy';
 
 export const Home: React.FC = () => {
+  const { loggedIn } = useWallet();
   const { user } = useAuth();
   const [projects, setProjects] = React.useState<Project[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -66,7 +69,7 @@ export const Home: React.FC = () => {
           <p className="text-lg mb-6">
             Support meaningful projects and track their progress through milestones.
           </p>
-          {user?.loggedIn ? (
+          {loggedIn ? (
             <Link
               to="/create-project"
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -74,12 +77,7 @@ export const Home: React.FC = () => {
               Start a Project
             </Link>
           ) : (
-            <button
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              onClick={() => alert('Please connect your wallet first')}
-            >
-              Connect Wallet to Start
-            </button>
+            <LoginWithPrivy />
           )}
         </div>
 

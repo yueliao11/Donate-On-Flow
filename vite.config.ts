@@ -180,7 +180,7 @@ export default defineConfig(({ mode }) => {
       react()
     ],
     optimizeDeps: {
-      exclude: ['lucide-react'],
+      exclude: ['lucide-react', '@backpack/backpack-js'],
     },
     server: {
       port: 5176, // 指定固定端口
@@ -189,6 +189,11 @@ export default defineConfig(({ mode }) => {
     define: {
       'process.env': {
         NEXT_PUBLIC_PRIVY_APP_ID: JSON.stringify(process.env.NEXT_PUBLIC_PRIVY_APP_ID)
+      }
+    },
+    build: {
+      rollupOptions: {
+        external: ['@backpack/backpack-js']
       }
     }
   };

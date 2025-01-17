@@ -12,8 +12,9 @@ import {
   ExclamationCircleIcon
 } from '@heroicons/react/24/outline'
 import { usePrivy } from '@privy-io/react-auth'
-import LoginWithPrivy from './LoginWithPrivy'
+import { LoginWithPrivy } from './LoginWithPrivy'
 import { config } from '@onflow/fcl'
+import { useWallet } from '../contexts/WalletContext'
 
 const FLOW_TESTNET_CHAIN_ID = '0x221' // 545 in hex
 const FLOW_TESTNET_RPC = 'https://testnet.evm.nodes.onflow.org'
@@ -22,6 +23,7 @@ const Navigation = () => {
   const { ready, authenticated, user, logout } = usePrivy()
   const [balance, setBalance] = useState<string>('')
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true)
+  const { loggedIn } = useWallet()
 
   const shortenAddress = (address: string) => {
     if (!address) return ''

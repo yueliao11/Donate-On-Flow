@@ -8,10 +8,16 @@ import { getProjectImage } from '../utils/imageUtils';
 import { DonationHistory } from '../components/DonationHistory';
 import { AIEnhancedDescription } from '../components/project/AIEnhancedDescription';
 import { LanguageTranslator } from '../components/shared/LanguageTranslator';
+import { useWallet } from '../contexts/WalletContext';
+import { DonateButton } from '../components/DonateButton';
+import { usePrivy } from '@privy-io/react-auth';
+import { LoginWithPrivy } from '../components/LoginWithPrivy';
 
 export const ProjectDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user, charityContract, signer } = useAuth();
+  const { loggedIn, walletAddress } = useWallet();
+  const { authenticated, ready } = usePrivy();
   const [project, setProject] = React.useState<Project | null>(null);
   const [milestones, setMilestones] = React.useState<Milestone[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -42,7 +48,7 @@ export const ProjectDetails: React.FC = () => {
   const handleDonate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user?.addr || !charityContract || !signer) {
+    if (!loggedIn || !walletAddress || !charityContract || !signer) {
       alert('Please connect your wallet first');
       return;
     }
@@ -59,21 +65,17 @@ export const ProjectDetails: React.FC = () => {
 
     try {
       const donationWei = ethers.utils.parseEther(donationAmount);
-      console.log('Donating amount in wei:', donationWei.toString());
-
+      
       const tx = await charityContract.donate(project.chain_project_id, {
         value: donationWei,
         gasLimit: 500000 
       });
-
-      console.log('Transaction sent:', tx.hash);
       
       const receipt = await tx.wait();
-      console.log('Transaction confirmed:', receipt);
       
       await createDonation({
         project_id: parseInt(id!),
-        donor_address: user.addr,
+        donor_address: walletAddress,
         amount: parseFloat(donationAmount),
         transaction_id: tx.hash,
       });
@@ -98,6 +100,8 @@ export const ProjectDetails: React.FC = () => {
     const telegramShareLink = `https://telegram.me/share/url?url=${encodeURIComponent(projectUrl)}&text=${encodeURIComponent(description + ' ' + tags)}`;
     window.open(telegramShareLink, '_blank'); 
   };
+
+  const isOwner = loggedIn && project?.owner_address === walletAddress;
 
   if (loading) {
     return (
@@ -243,7 +247,7 @@ export const ProjectDetails: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Make a Donation
               </h2>
-              {user?.loggedIn ? (
+              {loggedIn ? (
                 <form onSubmit={handleDonate} className="space-y-4">
                   <div>
                     <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
@@ -265,7 +269,7 @@ export const ProjectDetails: React.FC = () => {
                   </div>
                   <button
                     type="submit"
-                    className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="w-full px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                   >
                     Donate Now
                   </button>
@@ -275,12 +279,7 @@ export const ProjectDetails: React.FC = () => {
                   <p className="text-gray-600 mb-4">
                     Please connect your wallet to make a donation
                   </p>
-                  <button
-                    onClick={() => alert('Please connect your wallet first')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Connect Wallet
-                  </button>
+                  <LoginWithPrivy />
                 </div>
               )}
             </div>
@@ -296,6 +295,17 @@ export const ProjectDetails: React.FC = () => {
           >
             Share on Telegram
           </button>
+
+          {loggedIn && (
+            <div className="mt-6">
+              <DonateButton projectId={id!} />
+            </div>
+          )}
+          {isOwner && (
+            <div className="mt-4">
+              <UpdateProjectButton project={project} />
+            </div>
+          )}
         </div>
       </div>
     </div>

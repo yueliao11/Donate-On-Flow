@@ -1,6 +1,6 @@
-import React from 'react';
-import { usePrivy } from '@privy-io/react-auth';
-import { ethers } from 'ethers';
+import React, { useState } from 'react';
+import { useWallet } from '../../contexts/WalletContext';
+import { ConnectWalletPrompt } from '../ConnectWalletPrompt';
 
 interface DonationModalProps {
   projectId: number;
@@ -15,22 +15,23 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   onClose,
   onDonationComplete,
 }) => {
-  const { ready, authenticated, login, user } = usePrivy();
-  const [amount, setAmount] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
+  const { loggedIn, walletAddress } = useWallet();
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const isWalletConnected = ready && authenticated && !!user?.wallet?.address;
-
-  React.useEffect(() => {
-    if (ready && authenticated && user?.wallet?.address) {
-      console.log('Wallet connected:', user.wallet.address);
-    }
-  }, [ready, authenticated, user]);
+  if (!loggedIn || !walletAddress) {
+    return (
+      <ConnectWalletPrompt 
+        message="请先连接钱包进行捐赠"
+        size="md"
+      />
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!authenticated || !user?.wallet?.address) {
+    if (!loggedIn || !walletAddress) {
       alert('请先连接钱包');
       return;
     }
@@ -62,7 +63,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
 
   if (!isOpen) return null;
 
-  if (!ready) {
+  if (!loggedIn) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg max-w-md w-full p-6">
@@ -79,60 +80,46 @@ export const DonationModal: React.FC<DonationModalProps> = ({
           捐赠
         </h2>
 
-        {!isWalletConnected ? (
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">
-              请先连接钱包进行捐赠
-            </p>
-            <button
-              onClick={login}
-              className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700"
             >
-              连接钱包
+              金额 (FLOW)
+            </label>
+            <div className="mt-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                id="amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                placeholder="0.00"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
+            >
+              {loading ? '处理中...' : '捐赠'}
             </button>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="amount"
-                className="block text-sm font-medium text-gray-700"
-              >
-                金额 (FLOW)
-              </label>
-              <div className="mt-1">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                取消
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400"
-              >
-                {loading ? '处理中...' : '捐赠'}
-              </button>
-            </div>
-          </form>
-        )}
+        </form>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useWallet } from '../contexts/WalletContext';
 import {
   Project,
   Donation,
@@ -9,23 +9,22 @@ import {
   updateMilestoneStatus,
   updateProjectStatus
 } from '../lib/supabase';
+import { LoginWithPrivy } from '../components/LoginWithPrivy';
 
 interface DonationWithProject extends Donation {
   project: Pick<Project, 'id' | 'title' | 'status' | 'category' | 'image_url'>;
 }
 
 export const UserDashboard: React.FC = () => {
-  const { user, connected, walletAddress } = useAuth();
+  const { loggedIn, walletAddress } = useWallet();
   const navigate = useNavigate();
-  const [projects, setProjects] = React.useState<Project[]>([]);
-  const [donations, setDonations] = React.useState<DonationWithProject[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState<'projects' | 'donations'>('projects');
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [donations, setDonations] = useState<DonationWithProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'projects' | 'donations'>('projects');
 
-  React.useEffect(() => {
-    console.log('UserDashboard: Current user:', user);
-    if (!connected) {
-      console.log('UserDashboard: Not connected, redirecting to home');
+  useEffect(() => {
+    if (!loggedIn) {
       navigate('/');
       return;
     }
@@ -33,7 +32,6 @@ export const UserDashboard: React.FC = () => {
     const fetchUserData = async () => {
       setLoading(true);
       try {
-        // 使用钱包地址获取数据
         if (walletAddress) {
           const [userProjects, userDonations] = await Promise.all([
             getProjectsByCreator(walletAddress),
@@ -50,7 +48,7 @@ export const UserDashboard: React.FC = () => {
     };
 
     fetchUserData();
-  }, [connected, walletAddress, navigate]);
+  }, [loggedIn, walletAddress, navigate]);
 
   const handleUpdateMilestone = async (milestoneId: number, status: 'PENDING' | 'ACTIVE' | 'COMPLETED') => {
     try {
