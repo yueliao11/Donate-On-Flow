@@ -1,23 +1,55 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu } from '@headlessui/react'
+import { ethers } from 'ethers'
 import { 
   ChevronDownIcon, 
   WalletIcon,
   PlusCircleIcon,
   RectangleStackIcon,
   UserCircleIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline'
 import { usePrivy } from '@privy-io/react-auth'
 import LoginWithPrivy from './LoginWithPrivy'
+import { config } from '@onflow/fcl'
+
+const FLOW_TESTNET_CHAIN_ID = '0x221' // 545 in hex
+const FLOW_TESTNET_RPC = 'https://testnet.evm.nodes.onflow.org'
 
 const Navigation = () => {
   const { ready, authenticated, user, logout } = usePrivy()
-  
+  const [balance, setBalance] = useState<string>('')
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState(true)
+
   const shortenAddress = (address: string) => {
     if (!address) return ''
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
+
+  useEffect(() => {
+    const checkNetworkAndBalance = async () => {
+      if (ready && authenticated && user?.wallet?.address) {
+        try {
+          // 检查FCL网络配置
+          const network = await config().get('flow.network')
+          setIsCorrectNetwork(network === 'testnet')
+          
+          // Get FLOW balance
+          const provider = new ethers.providers.JsonRpcProvider(FLOW_TESTNET_RPC)
+          const balanceWei = await provider.getBalance(user.wallet.address)
+          const balanceFlow = ethers.utils.formatEther(balanceWei)
+          setBalance(Number(balanceFlow).toFixed(4))
+        } catch (error) {
+          console.error('Error checking network/balance:', error)
+          setBalance('0')
+        }
+      }
+    }
+
+    checkNetworkAndBalance()
+  }, [ready, authenticated, user])
 
   return (
     <nav className="bg-white shadow-sm">
@@ -76,6 +108,16 @@ const Navigation = () => {
                     <p className="text-sm font-medium text-gray-500 truncate">
                       {shortenAddress(user?.wallet?.address || '')}
                     </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-sm text-gray-500">Balance:</p>
+                      <p className="text-sm font-medium text-gray-900">{balance} FLOW</p>
+                    </div>
+                    {!isCorrectNetwork && (
+                      <div className="mt-2 flex items-center text-xs text-red-600">
+                        <ExclamationCircleIcon className="h-4 w-4 mr-1" />
+                        Please connect to Flow Testnet
+                      </div>
+                    )}
                   </div>
                   <div className="py-1">
                     <Menu.Item>
