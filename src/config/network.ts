@@ -1,22 +1,17 @@
 export const FLOW_TESTNET = {
-  id: 545,
-  chainId: '545',
-  rpcUrl: 'https://testnet.evm.nodes.onflow.org',
-  name: 'Flow EVM Testnet',
+  id: 'flow-testnet',
+  chainId: 'flow-testnet',
+  rpcUrl: 'https://rest-testnet.onflow.org',
+  name: 'Flow Testnet',
   nativeCurrency: {
-    decimals: 18,
+    decimals: 8,
     name: 'Flow',
     symbol: 'FLOW',
   },
-  rpcUrls: {
-    default: {
-      http: ['https://testnet.evm.nodes.onflow.org'],
-    },
-  },
   blockExplorers: {
     default: {
-      name: 'Flow Diver', 
-      url: 'https://testnet.flowdiver.io',
+      name: 'Flow View Source', 
+      url: 'https://testnet.flowscan.org',
     },
   },
 }; 
