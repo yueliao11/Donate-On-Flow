@@ -20,6 +20,8 @@
     "@onflow/fcl": "^1.13.4",
     "@onflow/types": "^1.4.1",
     "@openzeppelin/contracts": "^5.1.0",
+    "@privy-io/react-auth": "^2.0.3",
+    "@solana/web3.js": "^1.98.0",
     "@supabase/supabase-js": "^2.47.10",
     "@telegram-apps/init-data-node": "^1.2.2",
     "@twa-dev/sdk": "^8.0.1",

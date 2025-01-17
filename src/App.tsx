@@ -7,26 +7,29 @@ import { CreateProject } from './pages/CreateProject';
 import { ProjectDetails } from './pages/ProjectDetails';
 import { Navigation } from './components/Navigation';
 import { UserDashboard } from './pages/UserDashboard';
+import { PrivyProviderWrapper } from './providers/PrivyProviderWrapper';
 
 function App() {
   return (
-    <WalletProvider>
-      <AuthContextProvider>
-        <Router>
-          <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <main className="container mx-auto px-4 py-8">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/create-project" element={<CreateProject />} />
-                <Route path="/project/:id" element={<ProjectDetails />} />
-                <Route path="/dashboard" element={<UserDashboard />} />
-              </Routes>
-            </main>
-          </div>
-        </Router>
-      </AuthContextProvider>
-    </WalletProvider>
+    <PrivyProviderWrapper>
+      <WalletProvider>
+        <AuthContextProvider>
+          <Router>
+            <div className="min-h-screen bg-gray-50">
+              <Navigation />
+              <main className="container mx-auto px-4 py-8">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/create-project" element={<CreateProject />} />
+                  <Route path="/project/:id" element={<ProjectDetails />} />
+                  <Route path="/dashboard" element={<UserDashboard />} />
+                </Routes>
+              </main>
+            </div>
+          </Router>
+        </AuthContextProvider>
+      </WalletProvider>
+    </PrivyProviderWrapper>
   );
 }
 

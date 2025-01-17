@@ -185,6 +185,11 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5176, // 指定固定端口
       strictPort: true, // 如果端口被占用，不要尝试下一个端口
+    },
+    define: {
+      'process.env': {
+        NEXT_PUBLIC_PRIVY_APP_ID: JSON.stringify(process.env.NEXT_PUBLIC_PRIVY_APP_ID)
+      }
     }
   };
 });

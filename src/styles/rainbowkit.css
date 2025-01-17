@@ -1,0 +1,23 @@
+[data-rk] .ju367v4 {
+  background: #1f2937 !important; /* gray-800 */
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 0.75rem !important;
+}
+
+[data-rk] .ju367v4:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-rk] .ju367v4 > div {
+  gap: 1rem !important;
+}
+
+[data-rk] .ju367v4 img {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+}
+
+[data-rk] .ju367v4 div:last-child {
+  font-weight: 500 !important;
+  color: white !important;
+} 

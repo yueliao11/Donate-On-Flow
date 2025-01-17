@@ -1,4 +1,5 @@
 import React from 'react';
+import { usePrivy } from '@privy-io/react-auth';
 
 interface Donation {
   donor: string;
@@ -19,6 +20,18 @@ export const DonationLeaderboard: React.FC<DonationLeaderboardProps> = ({
   timeframe,
   onTimeframeChange
 }) => {
+  const { ready, authenticated, user } = usePrivy();
+
+  if (!ready) return <p>加载中...</p>;
+
+  if (!authenticated) {
+    return (
+      <div className="bg-white rounded-lg shadow p-4 text-center">
+        <p className="text-gray-600">请先连接钱包查看捐赠排行榜</p>
+      </div>
+    );
+  }
+
   const timeframes = [
     { value: 'all', label: 'All Time' },
     { value: 'week', label: 'This Week' },
