@@ -30,7 +30,7 @@ export default function Home() {
 					</div>
 				) : (
 					<button onClick={logIn} className="button button-connect">
-						Connect Wallet
+						Connect Wallet7777
 					</button>
 				)}
 			</div>

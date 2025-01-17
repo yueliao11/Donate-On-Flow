@@ -4,28 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { OKXUniversalConnectUI, THEME } from '@okxconnect/ui';
 import { ethers } from 'ethers';
 import { CharityProject__factory } from '../types/factories/CharityProject__factory';
-
-// Flow EVM Testnet 配置
-const FLOW_TESTNET = {
-  id: 545,
-  name: 'Flow EVM Testnet',
-  nativeCurrency: {
-    decimals: 18,
-    name: 'Flow',
-    symbol: 'FLOW',
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://testnet.evm.nodes.onflow.org'],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: 'Flow Diver',
-      url: 'https://testnet.flowdiver.io',
-    },
-  },
-};
+import { FLOW_TESTNET } from '../config/network';
 
 interface AuthContextType {
   connected: boolean;
@@ -70,8 +49,12 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
             icon: 'https://cryptologos.cc/logos/flow-flow-logo.png',
           },
           actionsConfiguration: {
-            returnStrategy: 'none',
+            returnStrategy: 'tg://resolve',
             modals: 'all',
+          },
+          networkConfig: {
+            chainId: FLOW_TESTNET.chainId,
+            rpcUrl: FLOW_TESTNET.rpcUrl
           },
           uiPreferences: {
             theme: THEME.LIGHT,

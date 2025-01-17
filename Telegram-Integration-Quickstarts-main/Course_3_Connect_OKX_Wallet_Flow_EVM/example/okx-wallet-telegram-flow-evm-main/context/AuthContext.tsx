@@ -51,8 +51,8 @@ export const AuthContextProvider: React.FC<{ children: React.ReactNode }> = ({
 			const session = await client.openModal({
 				namespaces: {
 					eip155: {
-						chains: ['eip155:747'],
-						defaultChain: '747',
+						chains: ['eip155:545'],
+						defaultChain: '545',
 					},
 				},
 			});

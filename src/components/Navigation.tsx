@@ -69,7 +69,7 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <LoginButton />
+            {/* <LoginButton />*}/
             {/* <TelegramUser />*/}Welcome! 
             
             {connected ? (
