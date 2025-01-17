@@ -1,12 +1,24 @@
 import { Link } from 'react-router-dom'
 import { Menu } from '@headlessui/react'
-import { ChevronDownIcon, WalletIcon } from '@heroicons/react/24/outline'
+import { 
+  ChevronDownIcon, 
+  WalletIcon,
+  PlusCircleIcon,
+  RectangleStackIcon,
+  UserCircleIcon,
+  ArrowRightOnRectangleIcon
+} from '@heroicons/react/24/outline'
 import { usePrivy } from '@privy-io/react-auth'
 import LoginWithPrivy from './LoginWithPrivy'
 
 const Navigation = () => {
-  const { ready, authenticated, user } = usePrivy()
+  const { ready, authenticated, user, logout } = usePrivy()
   
+  const shortenAddress = (address: string) => {
+    if (!address) return ''
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -54,28 +66,62 @@ const Navigation = () => {
               <Menu as="div" className="relative ml-3">
                 <Menu.Button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 rounded-lg border border-gray-300">
                   <WalletIcon className="h-5 w-5 text-gray-500" />
-                  <span>{user?.wallet?.address}</span>
+                  <span>{shortenAddress(user?.wallet?.address || '')}</span>
                   <ChevronDownIcon className="h-4 w-4 text-gray-500" />
                 </Menu.Button>
 
                 <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none">
                   <div className="px-4 py-3">
-                    <p className="text-sm text-gray-900">已连接钱包</p>
+                    <p className="text-sm text-gray-900">Connected Wallet</p>
                     <p className="text-sm font-medium text-gray-500 truncate">
-                      {user?.wallet?.address}
+                      {shortenAddress(user?.wallet?.address || '')}
                     </p>
                   </div>
                   <div className="py-1">
                     <Menu.Item>
                       {({ active }) => (
                         <Link
-                          to="/dashboard"
-                          className={`${
-                            active ? 'bg-gray-100' : ''
-                          } block px-4 py-2 text-sm text-gray-700`}
+                          to="/create-project"
+                          className={`${active ? 'bg-gray-100' : ''} flex items-center px-4 py-2 text-sm text-gray-700`}
                         >
-                          仪表盘
+                          <PlusCircleIcon className="mr-3 h-5 w-5 text-gray-500" />
+                          Create Project
                         </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          to="/dashboard"
+                          className={`${active ? 'bg-gray-100' : ''} flex items-center px-4 py-2 text-sm text-gray-700`}
+                        >
+                          <RectangleStackIcon className="mr-3 h-5 w-5 text-gray-500" />
+                          My Projects
+                        </Link>
+                      )}
+                    </Menu.Item>
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link
+                          to="/profile"
+                          className={`${active ? 'bg-gray-100' : ''} flex items-center px-4 py-2 text-sm text-gray-700`}
+                        >
+                          <UserCircleIcon className="mr-3 h-5 w-5 text-gray-500" />
+                          Profile
+                        </Link>
+                      )}
+                    </Menu.Item>
+                  </div>
+                  <div className="py-1">
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={logout}
+                          className={`${active ? 'bg-gray-100' : ''} flex w-full items-center px-4 py-2 text-sm text-gray-700`}
+                        >
+                          <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-gray-500" />
+                          Disconnect
+                        </button>
                       )}
                     </Menu.Item>
                   </div>
